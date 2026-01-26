@@ -1,0 +1,264 @@
+{
+	"info": {
+		"_postman_id": "tansiqy-api-collection",
+		"name": "Tansiqy API",
+		"description": "API Collection for Tansiqy University System - نظام التنسيق",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Universities",
+			"item": [
+				{
+					"name": "Get Universities by Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/type/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"type",
+								"1"
+							],
+							"variable": [
+								{
+									"key": "type",
+									"value": "1",
+									"description": "1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign"
+								}
+							]
+						},
+						"description": "Get all universities by type\n\nTypes:\n- 1 = Governmental (حكومية)\n- 2 = Private (خاصة)\n- 3 = National (أهلية)\n- 4 = Higher Institute (معاهد عالية)\n- 5 = Foreign (أجنبية)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get University by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"1"
+							]
+						},
+						"description": "Get university details by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Universities - By Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/search?searchTerm=أسوان",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "searchTerm",
+									"value": "أسوان"
+								}
+							]
+						},
+						"description": "Search universities by name"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Universities - By Type and Governorate",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/search?type=1&governorate=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "type",
+									"value": "1",
+									"description": "1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign"
+								},
+								{
+									"key": "governorate",
+									"value": "5",
+									"description": "Governorate ID"
+								}
+							]
+						},
+						"description": "Search universities by type and governorate"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Universities - By Study Type",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/search?studyType=2",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "studyType",
+									"value": "2",
+									"description": "1=Math, 2=Science, 3=Literary, 4=Industrial, 5=American"
+								}
+							]
+						},
+						"description": "Search universities by study type"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Universities - By Fees Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/search?minFees=1000&maxFees=5000",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "minFees",
+									"value": "1000"
+								},
+								{
+									"key": "maxFees",
+									"value": "5000"
+								}
+							]
+						},
+						"description": "Search universities by fees range"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Universities - By Coordination Range",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/search?minCoordination=300&maxCoordination=400",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"search"
+							],
+							"query": [
+								{
+									"key": "minCoordination",
+									"value": "300"
+								},
+								{
+									"key": "maxCoordination",
+									"value": "400"
+								}
+							]
+						},
+						"description": "Search universities by coordination range"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Colleges by University",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/universities/1/colleges",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"universities",
+								"1",
+								"colleges"
+							]
+						},
+						"description": "Get all colleges for a specific university"
+					},
+					"response": []
+				}
+			],
+			"description": "Universities endpoints"
+		},
+		{
+			"name": "Colleges",
+			"item": [
+				{
+					"name": "Get College by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/colleges/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"colleges",
+								"1"
+							]
+						},
+						"description": "Get college details by ID"
+					},
+					"response": []
+				}
+			],
+			"description": "Colleges endpoints"
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://localhost:7211",
+			"type": "string"
+		}
+	]
+}
+

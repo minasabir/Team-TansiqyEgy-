@@ -1,0 +1,239 @@
+@model TansiqyV1.BLL.ModelVM.CollegeViewModel
+@using TansiqyV1.PL.Helpers
+@{
+    ViewData["Title"] = Model.NameAr;
+}
+
+<div class="container-fluid py-4">
+    <!-- Back Navigation -->
+    <div class="mb-3 d-flex align-items-center gap-2">
+        @if (Model.University != null)
+        {
+            <a href="@Url.Action("Colleges", "Universities", new { id = Model.University.Id })" class="text-decoration-none text-dark">
+                <i class="fas fa-arrow-right me-2"></i> العودة
+            </a>
+            <span class="text-muted">|</span>
+        }
+        <a href="@Url.Action("Index", "Home")" class="text-decoration-none text-dark">
+            <i class="fas fa-home me-2"></i> الرئيسية
+        </a>
+    </div>
+
+    <!-- College Header -->
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h2 class="mb-2">@Model.NameAr</h2>
+            @if (!string.IsNullOrEmpty(Model.NameEn))
+            {
+                <p class="text-muted mb-0">@Model.NameEn</p>
+            }
+            @if (Model.University != null)
+            {
+                <p class="text-muted">
+                    <i class="fas fa-university me-2"></i>@Model.University.NameAr
+                </p>
+            }
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- الوصف -->
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="info-card-icon bg-primary">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <h5 class="mb-0">نبذة عن الكلية</h5>
+                    </div>
+                    <p class="text-muted">@Model.Description</p>
+                </div>
+            }
+
+            <!-- التخصصات المتاحة -->
+            @if (Model.Departments != null && Model.Departments.Any())
+            {
+                <div class="info-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex align-items-center">
+                            <div class="info-card-icon" style="background-color: #6f42c1;">
+                                <i class="fas fa-graduation-cap"></i>
+                            </div>
+                            <h5 class="mb-0 ms-2">التخصصات المتاحة (@Model.Departments.Count)</h5>
+                        </div>
+                        <a href="@Url.Action("Departments", "Universities", new { id = Model.Id })" class="btn btn-primary btn-sm">
+                            <i class="fas fa-list me-2"></i> عرض جميع التخصصات
+                        </a>
+                    </div>
+                    <div class="row">
+                        @foreach (var dept in Model.Departments.Take(6))
+                        {
+                            <div class="col-md-6 mb-3">
+                                <div class="border rounded p-3">
+                                    <div class="d-flex align-items-start">
+                                        <i class="fas fa-check-circle text-success me-2 mt-1"></i>
+                                        <div>
+                                            <strong>@dept.NameAr</strong>
+                                            @if (!string.IsNullOrEmpty(dept.NameEn))
+                                            {
+                                                <br><small class="text-muted">@dept.NameEn</small>
+                                            }
+                                            @if (dept.StudyType.HasValue)
+                                            {
+                                                <br><span class="badge bg-info mt-1">@EnumHelper.GetStudyTypeName(dept.StudyType)</span>
+                                            }
+                                            @if (!string.IsNullOrEmpty(dept.Description))
+                                            {
+                                                <br><small class="text-muted mt-1 d-block">@dept.Description</small>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    @if (Model.Departments.Count > 6)
+                    {
+                        <div class="text-center mt-3">
+                            <a href="@Url.Action("Departments", "Universities", new { id = Model.Id })" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-2"></i> عرض المزيد (@(Model.Departments.Count - 6) تخصص)
+                            </a>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- التنسيق -->
+            @if (Model.LastYearCoordination.HasValue)
+            {
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="info-card-icon" style="background-color: #ffc107;">
+                            <i class="fas fa-scroll"></i>
+                        </div>
+                        <h5 class="mb-0">التنسيق</h5>
+                    </div>
+                    <p class="mb-0">
+                        <i class="fas fa-percentage text-warning me-2"></i>
+                        <strong>@Model.LastYearCoordination.Value%</strong>
+                    </p>
+                </div>
+            }
+
+            <!-- المصاريف -->
+            <div class="info-card">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="info-card-icon bg-success">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <h5 class="mb-0">المصاريف</h5>
+                </div>
+                @if (Model.Fees.HasValue)
+                {
+                    <p class="mb-2">
+                        <i class="fas fa-money-bill-wave text-success me-2"></i>
+                        <strong>@Model.Fees.Value.ToString("N0") جنيه</strong>
+                    </p>
+                }
+                @if (Model.FeesCategoryA.HasValue || Model.FeesCategoryB.HasValue || Model.FeesCategoryC.HasValue)
+                {
+                    <div class="mt-2">
+                        @if (Model.FeesCategoryA.HasValue)
+                        {
+                            <p class="mb-1 small">
+                                <strong>فئة أ:</strong> @Model.FeesCategoryA.Value.ToString("N0") جنيه
+                            </p>
+                        }
+                        @if (Model.FeesCategoryB.HasValue)
+                        {
+                            <p class="mb-1 small">
+                                <strong>فئة ب:</strong> @Model.FeesCategoryB.Value.ToString("N0") جنيه
+                            </p>
+                        }
+                        @if (Model.FeesCategoryC.HasValue)
+                        {
+                            <p class="mb-1 small">
+                                <strong>فئة ج:</strong> @Model.FeesCategoryC.Value.ToString("N0") جنيه
+                            </p>
+                        }
+                    </div>
+                }
+                @if (Model.FeesPerHour.HasValue)
+                {
+                    <p class="mb-1 small mt-2">
+                        <i class="fas fa-clock text-info me-2"></i>
+                        <strong>مصروفات الساعة:</strong> @Model.FeesPerHour.Value.ToString("N0") جنيه
+                    </p>
+                    @if (Model.MinimumHoursPerSemester.HasValue)
+                    {
+                        <p class="mb-1 small">
+                            <strong>الحد الأدنى للساعات:</strong> @Model.MinimumHoursPerSemester.Value ساعة
+                        </p>
+                    }
+                }
+            </div>
+
+            <!-- الموقع -->
+            @if (!string.IsNullOrEmpty(Model.Location))
+            {
+                <div class="info-card">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="info-card-icon bg-danger">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <h5 class="mb-0">الموقع</h5>
+                    </div>
+                    <p class="mb-0">
+                        <i class="fas fa-location-dot text-danger me-2"></i>
+                        @Model.Location
+                    </p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Admin Actions -->
+    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+    {
+        <div class="mt-4 p-3 bg-warning bg-opacity-10 rounded">
+            <h5 class="mb-3">إدارة الكلية</h5>
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("EditCollege", "Universities", new { id = Model.Id })" class="btn btn-warning">
+                    <i class="fas fa-edit me-2"></i> تعديل
+                </a>
+                <button type="button" class="btn btn-danger" onclick="deleteCollege(@Model.Id)">
+                    <i class="fas fa-trash me-2"></i> حذف
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function deleteCollege(id) {
+            if (confirm('هل أنت متأكد من حذف هذه الكلية؟')) {
+                fetch(`/api/Universities/colleges/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '@(Model.University != null ? Url.Action("Details", "Universities", new { id = Model.University.Id }) : Url.Action("Index", "Home"))';
+                    } else {
+                        alert('حدث خطأ أثناء حذف الكلية');
+                    }
+                });
+            }
+        }
+    </script>
+}
+

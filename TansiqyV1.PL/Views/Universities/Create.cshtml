@@ -1,0 +1,97 @@
+@model TansiqyV1.BLL.ModelVM.CreateUniversityDto
+@{
+    ViewData["Title"] = "إضافة جامعة جديدة";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4">إضافة جامعة جديدة</h2>
+
+    <form asp-action="Create" method="post" class="bg-white rounded p-4 shadow-sm">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="NameAr" class="form-label">اسم الجامعة بالعربي *</label>
+                <input asp-for="NameAr" class="form-control" />
+                <span asp-validation-for="NameAr" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="NameEn" class="form-label">اسم الجامعة بالإنجليزي</label>
+                <input asp-for="NameEn" class="form-control" />
+                <span asp-validation-for="NameEn" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Type" class="form-label">نوع الجامعة *</label>
+                <select asp-for="Type" class="form-select" asp-items="Html.GetEnumSelectList<TansiqyV1.DAL.Enums.UniversityType>()">
+                    <option value="">اختر النوع</option>
+                </select>
+                <span asp-validation-for="Type" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Governorate" class="form-label">المحافظة *</label>
+                <select asp-for="Governorate" class="form-select" asp-items="Html.GetEnumSelectList<TansiqyV1.DAL.Enums.Governorate>()">
+                    <option value="">اختر المحافظة</option>
+                </select>
+                <span asp-validation-for="Governorate" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="OfficialWebsite" class="form-label">الموقع الرسمي</label>
+                <input asp-for="OfficialWebsite" class="form-control" type="url" />
+                <span asp-validation-for="OfficialWebsite" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Location" class="form-label">الموقع</label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="LastYearCoordination" class="form-label">التنسيق (%)</label>
+                <input asp-for="LastYearCoordination" class="form-control" type="number" step="0.01" min="0" max="100" />
+                <span asp-validation-for="LastYearCoordination" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Fees" class="form-label">المصاريف (جنيه)</label>
+                <input asp-for="Fees" class="form-control" type="number" step="0.01" min="0" />
+                <span asp-validation-for="Fees" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Description" class="form-label">الوصف</label>
+                <textarea asp-for="Description" class="form-control" rows="4"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="InformationSources" class="form-label">مصادر المعلومات</label>
+                <input asp-for="InformationSources" class="form-control" />
+                <span asp-validation-for="InformationSources" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i> حفظ
+            </button>
+            <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+
+
+
+
+
+
+

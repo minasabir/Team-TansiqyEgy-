@@ -1,0 +1,108 @@
+﻿@{
+    ViewData["Title"] = "الرئيسية";
+    var universityCounts = ViewBag.UniversityCounts as Dictionary<TansiqyV1.DAL.Enums.UniversityType, int> ?? new Dictionary<TansiqyV1.DAL.Enums.UniversityType, int>();
+}
+
+<div class="container-fluid py-4">
+    <!-- Latest News Banner -->
+    <div class="news-banner mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fas fa-arrow-right fa-2x"></i>
+                <div>
+                    <h3 class="mb-1">أحدث الأخبار</h3>
+                    <p class="mb-0">تابع آخر أخبار الجامعات والقبول</p>
+                </div>
+            </div>
+            <i class="fas fa-newspaper fa-3x opacity-75"></i>
+        </div>
+    </div>
+
+    <!-- University Type Cards -->
+    <div class="row g-4 mb-4">
+        <!-- جامعات حكومية -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 1 })'">
+                <div class="type-card-icon" style="background-color: #28a745;">
+                    <i class="fas fa-graduation-cap"></i>
+                </div>
+                <h5 class="mb-2">جامعات حكومية</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.Governmental) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.Governmental] : 0) جامعة</p>
+            </div>
+        </div>
+
+        <!-- جامعات خاصة -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 2 })'">
+                <div class="type-card-icon" style="background-color: #007bff;">
+                    <i class="fas fa-building"></i>
+                </div>
+                <h5 class="mb-2">جامعات خاصة</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.Private) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.Private] : 0) جامعة</p>
+            </div>
+        </div>
+
+        <!-- جامعات أهلية -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 3 })'">
+                <div class="type-card-icon" style="background-color: #6f42c1;">
+                    <i class="fas fa-university"></i>
+                </div>
+                <h5 class="mb-2">جامعات أهلية</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.National) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.National] : 0) جامعة</p>
+            </div>
+        </div>
+
+        <!-- جامعات تكنولوجية -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 6 })'">
+                <div class="type-card-icon" style="background-color: #17a2b8;">
+                    <i class="fas fa-laptop-code"></i>
+                </div>
+                <h5 class="mb-2">جامعات تكنولوجية</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.Technological) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.Technological] : 0) جامعة</p>
+            </div>
+        </div>
+
+        <!-- جامعات أجنبية -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 5 })'">
+                <div class="type-card-icon" style="background-color: #dc3545;">
+                    <i class="fas fa-globe"></i>
+                </div>
+                <h5 class="mb-2">جامعات أجنبية</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.Foreign) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.Foreign] : 0) جامعة</p>
+            </div>
+        </div>
+
+        <!-- معاهد عليا -->
+        <div class="col-md-6 col-lg-4 col-xl-2-4">
+            <div class="type-card bg-white" onclick="location.href='@Url.Action("Index", "Universities", new { type = 4 })'">
+                <div class="type-card-icon" style="background-color: #fd7e14;">
+                    <i class="fas fa-book"></i>
+                </div>
+                <h5 class="mb-2">معاهد عليا</h5>
+                <p class="text-muted mb-0">@(universityCounts.ContainsKey(TansiqyV1.DAL.Enums.UniversityType.HigherInstitute) ? universityCounts[TansiqyV1.DAL.Enums.UniversityType.HigherInstitute] : 0) معهد</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Add University Button -->
+    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Admin"))
+    {
+        <div class="text-center mt-4">
+            <a href="@Url.Action("Create", "Universities")" class="btn btn-success btn-lg">
+                <i class="fas fa-plus me-2"></i> إضافة جامعة جديدة
+            </a>
+        </div>
+    }
+</div>
+
+<style>
+    @@media (min-width: 1200px) {
+        .col-xl-2-4 {
+            flex: 0 0 auto;
+            width: 20%;
+        }
+    }
+</style>

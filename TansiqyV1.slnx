@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="TansiqyV1.API/TansiqyV1.API.csproj" Id="20f07b2e-70e2-4f80-b73e-1ba4e2b2a5b8" />
+  <Project Path="TansiqyV1.BLL/TansiqyV1.BLL.csproj" Id="faedbef0-7c8d-4495-8a83-639c0b776774" />
+  <Project Path="TansiqyV1.DAL/TansiqyV1.DAL.csproj" Id="8f1c569e-0414-47de-a136-1799fff246e9" />
+  <Project Path="TansiqyV1.PL/TansiqyV1.PL.csproj" />
+</Solution>

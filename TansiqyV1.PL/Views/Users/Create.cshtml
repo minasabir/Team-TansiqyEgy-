@@ -1,0 +1,68 @@
+@model TansiqyV1.PL.Controllers.CreateUserViewModel
+@{
+    ViewData["Title"] = "إضافة مستخدم جديد";
+}
+
+<div class="container-fluid py-4">
+    <h2 class="mb-4">إضافة مستخدم جديد</h2>
+
+    <form asp-action="Create" method="post" class="bg-white rounded p-4 shadow-sm">
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Email" class="form-label">البريد الإلكتروني *</label>
+                <input asp-for="Email" class="form-control" type="email" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Password" class="form-label">كلمة المرور *</label>
+                <input asp-for="Password" class="form-control" type="password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+                <small class="text-muted">يجب أن تكون 6 أحرف على الأقل</small>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="FullName" class="form-label">الاسم الكامل</label>
+                <input asp-for="FullName" class="form-control" />
+                <span asp-validation-for="FullName" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <label asp-for="Role" class="form-label">الدور *</label>
+                <select asp-for="Role" class="form-select" asp-items="Html.GetEnumSelectList<TansiqyV1.DAL.Enums.UserRole>()">
+                </select>
+                <span asp-validation-for="Role" class="text-danger"></span>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-check mt-4">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                    <label asp-for="IsActive" class="form-check-label">
+                        المستخدم نشط
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i> حفظ
+            </button>
+            <a href="@Url.Action("Index")" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+
+
+
+
+
+
+
+
