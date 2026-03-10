@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TansiqyV1.DAL.Database;
 using TansiqyV1.DAL.Entities;
 using TansiqyV1.DAL.Enums;
+using TansiqyV1.DAL.Helpers;
 using TansiqyV1.DAL.Repo.Abstraction;
 
 namespace TansiqyV1.DAL.Repo.Implementation;
@@ -141,5 +142,112 @@ public class UniversityRepository : GenericRepository<University>, IUniversityRe
             .Select(g => new { UniversityId = g.Key, Count = g.Count() })
             .AsNoTracking()
             .ToDictionaryAsync(x => x.UniversityId, x => x.Count);
+    }
+
+    // =========================================================================
+    // INTELLIGENT ARABIC SEARCH METHODS
+    // =========================================================================
+
+    public async Task<IEnumerable<University>> SearchIntelligentAsync(
+        string? searchTerm, 
+        UniversityType? type, 
+        Governorate? governorate, 
+        decimal? minFees, 
+        decimal? maxFees, 
+        StudyType? studyType = null, 
+        decimal? minCoordination = null, 
+        decimal? maxCoordination = null, 
+        string? collegeName = null)
+    {
+        var query = _dbSet.Where(u => !u.IsDeleted).AsQueryable();
+
+        // Intelligent Arabic name search using normalized columns
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var normalizedSearchTerm = ArabicTextNormalizer.Normalize(searchTerm);
+            var likePatterns = ArabicTextNormalizer.GenerateSearchVariations(searchTerm)
+                .Select(v => "%" + v + "%")
+                .ToList();
+            
+            // Search on normalized column with multiple variations
+            query = query.Where(u => 
+                likePatterns.Any(pattern => EF.Functions.Like(u.NormalizedNameAr, pattern)) ||
+                likePatterns.Any(pattern => EF.Functions.Like(u.NameAr, pattern)) ||
+                (u.NameEn != null && EF.Functions.Like(u.NameEn, "%" + searchTerm + "%"))
+            );
+        }
+
+        // Apply all other filters (same as SearchAsync)
+        if (type.HasValue)
+            query = query.Where(u => u.Type == type.Value);
+
+        if (governorate.HasValue)
+            query = query.Where(u => u.Governorate == governorate.Value);
+
+        if (minFees.HasValue)
+            query = query.Where(u => u.Fees.HasValue && u.Fees >= minFees.Value);
+
+        if (maxFees.HasValue)
+            query = query.Where(u => u.Fees.HasValue && u.Fees <= maxFees.Value);
+
+        if (minCoordination.HasValue)
+            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination >= minCoordination.Value);
+
+        if (maxCoordination.HasValue)
+            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination <= maxCoordination.Value);
+
+        if (studyType.HasValue)
+        {
+            query = query.Where(u => 
+                u.Colleges.Any(c => 
+                    c.Departments.Any(d => d.StudyType == studyType.Value && !d.IsDeleted) && !c.IsDeleted
+                )
+            );
+        }
+
+        // Intelligent college name search
+        if (!string.IsNullOrWhiteSpace(collegeName))
+        {
+            var normalizedCollegeName = ArabicTextNormalizer.Normalize(collegeName);
+            var collegePatterns = ArabicTextNormalizer.GenerateSearchVariations(collegeName)
+                .Select(v => "%" + v + "%")
+                .ToList();
+            
+            query = query.Where(u => 
+                u.Colleges.Any(c => 
+                    !c.IsDeleted &&
+                    (collegePatterns.Any(pattern => EF.Functions.Like(c.NormalizedNameAr, pattern)) ||
+                     collegePatterns.Any(pattern => EF.Functions.Like(c.NameAr, pattern)) ||
+                     (c.NameEn != null && EF.Functions.Like(c.NameEn, "%" + collegeName + "%")))
+                )
+            );
+        }
+
+        return await query
+            .Include(u => u.Colleges)
+                .ThenInclude(c => c.Departments)
+            .Include(u => u.Branches)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<University>> SearchByNameIntelligentAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return new List<University>();
+
+        var normalizedSearchTerm = ArabicTextNormalizer.Normalize(searchTerm);
+        var likePatterns = ArabicTextNormalizer.GenerateSearchVariations(searchTerm)
+            .Select(v => "%" + v + "%")
+            .ToList();
+
+        return await _dbSet
+            .Where(u => !u.IsDeleted && (
+                likePatterns.Any(pattern => EF.Functions.Like(u.NormalizedNameAr, pattern)) ||
+                likePatterns.Any(pattern => EF.Functions.Like(u.NameAr, pattern)) ||
+                (u.NameEn != null && EF.Functions.Like(u.NameEn, "%" + searchTerm + "%"))
+            ))
+            .AsNoTracking()
+            .ToListAsync();
     }
 }

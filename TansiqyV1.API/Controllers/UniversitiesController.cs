@@ -193,6 +193,96 @@ public class UniversitiesController : ControllerBase
     }
 
     /// <summary>
+    /// Search universities with filters using intelligent Arabic text matching
+    /// Handles Arabic letter variations, diacritics, and morphological forms
+    /// </summary>
+    /// <param name="searchTerm">Search term (intelligent Arabic matching)</param>
+    /// <param name="type">University type (1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign, 6=Technological)</param>
+    /// <param name="governorate">Governorate ID</param>
+    /// <param name="studyType">Study type (1=Math, 2=Science, 3=Literary, 4=Industrial, 5=American)</param>
+    /// <param name="minFees">Minimum fees</param>
+    /// <param name="maxFees">Maximum fees</param>
+    /// <param name="minCoordination">Minimum coordination</param>
+    /// <param name="maxCoordination">Maximum coordination</param>
+    /// <param name="collegeName">College name (intelligent Arabic matching)</param>
+    /// <returns>List of matching universities with intelligent Arabic search</returns>
+    [HttpGet("search/intelligent")]
+    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm", "type", "governorate", "studyType", "minFees", "maxFees", "minCoordination", "maxCoordination", "collegeName" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> SearchIntelligent(
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] int? type = null,
+        [FromQuery] int? governorate = null,
+        [FromQuery] int? studyType = null,
+        [FromQuery] decimal? minFees = null,
+        [FromQuery] decimal? maxFees = null,
+        [FromQuery] decimal? minCoordination = null,
+        [FromQuery] decimal? maxCoordination = null,
+        [FromQuery] string? collegeName = null)
+    {
+        try
+        {
+            UniversityType? universityType = type.HasValue && Enum.IsDefined(typeof(UniversityType), type.Value)
+                ? (UniversityType?)type.Value
+                : null;
+
+            Governorate? governorateEnum = governorate.HasValue && Enum.IsDefined(typeof(Governorate), governorate.Value)
+                ? (Governorate?)governorate.Value
+                : null;
+
+            StudyType? studyTypeEnum = studyType.HasValue && Enum.IsDefined(typeof(StudyType), studyType.Value)
+                ? (StudyType?)studyType.Value
+                : null;
+
+            var universities = await _universityService.SearchUniversitiesIntelligentAsync(
+                searchTerm,
+                universityType,
+                governorateEnum,
+                studyTypeEnum,
+                minFees,
+                maxFees,
+                minCoordination,
+                maxCoordination,
+                collegeName);
+
+            return Ok(universities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing intelligent Arabic search");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Search universities by name only using intelligent Arabic text matching
+    /// Handles Arabic letter variations, diacritics, and morphological forms
+    /// </summary>
+    /// <param name="searchTerm">Search term (intelligent Arabic matching)</param>
+    /// <returns>List of matching universities with intelligent Arabic search</returns>
+    [HttpGet("search/name/intelligent")]
+    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> SearchByNameIntelligent([FromQuery] string searchTerm)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Ok(new List<BLL.ModelVM.UniversityViewModel>());
+            }
+
+            var universities = await _universityService.SearchUniversitiesByNameIntelligentAsync(searchTerm);
+            return Ok(universities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching universities by name with intelligent Arabic matching");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
+    /// <summary>
     /// Get all colleges for a specific university
     /// </summary>
     /// <param name="id">University ID</param>

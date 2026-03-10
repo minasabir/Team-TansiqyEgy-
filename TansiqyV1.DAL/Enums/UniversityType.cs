@@ -21,4 +21,7 @@ public enum UniversityType
     
     [Description("جامعات تكنولوجية")]
     Technological = 6
+
+
+
 }

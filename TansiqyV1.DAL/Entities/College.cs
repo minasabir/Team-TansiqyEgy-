@@ -6,6 +6,13 @@ public class College : BaseEntity
 {
     public string NameAr { get; set; } = string.Empty;
     public string? NameEn { get; set; }
+    
+    /// <summary>
+    /// Normalized Arabic name for intelligent search.
+    /// Automatically populated from NameAr using ArabicTextNormalizer.
+    /// </summary>
+    public string? NormalizedNameAr { get; set; }
+    
     public int UniversityId { get; set; }
     public string? OfficialWebsite { get; set; }
     public string? Location { get; set; }

@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using TansiqyV1.BLL.Helpers;
 using TansiqyV1.BLL.ModelVM;
 using TansiqyV1.BLL.Services.Abstraction;
 using TansiqyV1.DAL.Entities;
@@ -219,6 +218,104 @@ public class UniversityService : IUniversityService
         });
     }
 
+    // =========================================================================
+    // INTELLIGENT ARABIC SEARCH METHODS
+    // =========================================================================
+
+    public async Task<IEnumerable<UniversityViewModel>> SearchUniversitiesIntelligentAsync(
+        string? searchTerm,
+        UniversityType? type,
+        Governorate? governorate,
+        StudyType? studyType,
+        decimal? minFees,
+        decimal? maxFees,
+        decimal? minCoordination,
+        decimal? maxCoordination,
+        string? collegeName = null)
+    {
+        var universities = await _universityRepository.SearchIntelligentAsync(
+            searchTerm,
+            type,
+            governorate,
+            minFees,
+            maxFees,
+            studyType,
+            minCoordination,
+            maxCoordination,
+            collegeName);
+
+        return universities.Select(u => new UniversityViewModel
+        {
+            Id = u.Id,
+            NameAr = u.NameAr,
+            NameEn = u.NameEn,
+            Type = (int)u.Type,
+            TypeAr = u.Type.GetDescription(),
+            OfficialWebsite = u.OfficialWebsite,
+            Location = u.Location,
+            Governorate = (int)u.Governorate,
+            GovernorateAr = u.Governorate.GetDescription(),
+            LastYearCoordination = u.LastYearCoordination,
+            Fees = u.Fees,
+            InformationSources = u.InformationSources,
+            Description = u.Description,
+            CollegesCount = !string.IsNullOrWhiteSpace(collegeName) ?
+                u.Colleges.Count(c => ArabicTextNormalizer.Contains(c.NameAr, collegeName)) :
+                u.Colleges.Count,
+            BranchesCount = u.Branches.Count,
+            Colleges = u.Colleges.Where(c => !string.IsNullOrWhiteSpace(collegeName) ?
+                ArabicTextNormalizer.Contains(c.NameAr, collegeName) : true)
+                .Select(c => new CollegeViewModel
+                {
+                    Id = c.Id,
+                    NameAr = c.NameAr,
+                    UniversityId = c.UniversityId,
+                    Departments = c.Departments.Select(d => new DepartmentViewModel
+                    {
+                        Id = d.Id,
+                        NameAr = d.NameAr,
+                        StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
+                        StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null
+                    })
+                    .ToList()
+                })
+                .ToList()
+        });
+    }
+
+    public async Task<IEnumerable<UniversityViewModel>> SearchUniversitiesByNameIntelligentAsync(string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+            return new List<UniversityViewModel>();
+
+        var universities = await _universityRepository.SearchByNameIntelligentAsync(searchTerm);
+
+        var universityIds = universities.Select(u => u.Id).ToList();
+        var collegeCounts = await _collegeRepository.GetCountsByUniversityIdsAsync(universityIds);
+        var branchCounts = await _universityRepository.GetBranchCountsByUniversityIdsAsync(universityIds);
+
+        return universities.Select(u => new UniversityViewModel
+        {
+            Id = u.Id,
+            NameAr = u.NameAr,
+            NameEn = u.NameEn,
+            Type = (int)u.Type,
+            TypeAr = u.Type.GetDescription(),
+            OfficialWebsite = u.OfficialWebsite,
+            Location = u.Location,
+            Governorate = (int)u.Governorate,
+            GovernorateAr = u.Governorate.GetDescription(),
+            LastYearCoordination = u.LastYearCoordination,
+            Fees = u.Fees,
+            InformationSources = u.InformationSources,
+            Description = u.Description,
+            CollegesCount = collegeCounts.GetValueOrDefault(u.Id, 0),
+            BranchesCount = branchCounts.GetValueOrDefault(u.Id, 0),
+            Colleges = new List<CollegeViewModel>(),
+            Branches = new List<BranchViewModel>()
+        });
+    }
+
     public async Task<IEnumerable<CollegeViewModel>> GetCollegesByUniversityIdAsync(int universityId)
     {
         var colleges = await _collegeRepository.GetByUniversityIdAsync(universityId);
@@ -312,6 +409,7 @@ public class UniversityService : IUniversityService
         {
             NameAr = dto.NameAr,
             NameEn = dto.NameEn,
+            NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr),
             Type = dto.Type,
             OfficialWebsite = dto.OfficialWebsite,
             Location = dto.Location,
@@ -357,6 +455,7 @@ public class UniversityService : IUniversityService
             UniversityId = dto.UniversityId,
             NameAr = dto.NameAr,
             NameEn = dto.NameEn,
+            NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr),
             OfficialWebsite = dto.OfficialWebsite,
             Location = dto.Location,
             Description = dto.Description,
@@ -381,6 +480,7 @@ public class UniversityService : IUniversityService
                 CollegeId = createdCollege.Id,
                 NameAr = d.NameAr,
                 NameEn = d.NameEn,
+                NormalizedNameAr = ArabicTextNormalizer.Normalize(d.NameAr),
                 Description = d.Description,
                 StudyType = d.StudyType,
                 CreatedAt = DateTime.Now
@@ -405,6 +505,7 @@ public class UniversityService : IUniversityService
             CollegeId = dto.CollegeId,
             NameAr = dto.NameAr,
             NameEn = dto.NameEn,
+            NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr),
             Description = dto.Description,
             StudyType = dto.StudyType,
             CreatedAt = DateTime.Now
@@ -462,6 +563,7 @@ public class UniversityService : IUniversityService
 
         university.NameAr = dto.NameAr;
         university.NameEn = dto.NameEn;
+        university.NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr);
         university.Type = dto.Type;
         university.OfficialWebsite = dto.OfficialWebsite;
         university.Location = dto.Location;
@@ -493,6 +595,7 @@ public class UniversityService : IUniversityService
         college.UniversityId = dto.UniversityId;
         college.NameAr = dto.NameAr;
         college.NameEn = dto.NameEn;
+        college.NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr);
         college.OfficialWebsite = dto.OfficialWebsite;
         college.Location = dto.Location;
         college.Description = dto.Description;
@@ -527,6 +630,7 @@ public class UniversityService : IUniversityService
         department.CollegeId = dto.CollegeId;
         department.NameAr = dto.NameAr;
         department.NameEn = dto.NameEn;
+        department.NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr);
         department.Description = dto.Description;
         department.StudyType = dto.StudyType;
         department.UpdatedAt = DateTime.Now;

@@ -6,6 +6,13 @@ public class Department : BaseEntity
 {
     public string NameAr { get; set; } = string.Empty;
     public string? NameEn { get; set; }
+    
+    /// <summary>
+    /// Normalized Arabic name for intelligent search.
+    /// Automatically populated from NameAr using ArabicTextNormalizer.
+    /// </summary>
+    public string? NormalizedNameAr { get; set; }
+    
     public int CollegeId { get; set; }
     public string? Description { get; set; }
     public StudyType? StudyType { get; set; } // نوع الدراسة المطلوب

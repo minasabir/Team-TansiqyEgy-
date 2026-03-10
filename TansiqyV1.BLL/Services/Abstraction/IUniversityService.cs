@@ -21,6 +21,21 @@ public interface IUniversityService
         string? collegeName = null
     );
     Task<IEnumerable<UniversityViewModel>> SearchUniversitiesByNameAsync(string searchTerm);
+    
+    // Intelligent Arabic Search Methods (new)
+    Task<IEnumerable<UniversityViewModel>> SearchUniversitiesIntelligentAsync(
+        string? searchTerm,
+        UniversityType? type,
+        Governorate? governorate,
+        StudyType? studyType,
+        decimal? minFees,
+        decimal? maxFees,
+        decimal? minCoordination,
+        decimal? maxCoordination,
+        string? collegeName = null
+    );
+    Task<IEnumerable<UniversityViewModel>> SearchUniversitiesByNameIntelligentAsync(string searchTerm);
+    
     Task<IEnumerable<CollegeViewModel>> GetCollegesByUniversityIdAsync(int universityId);
     Task<CollegeViewModel?> GetCollegeByIdAsync(int collegeId);
 

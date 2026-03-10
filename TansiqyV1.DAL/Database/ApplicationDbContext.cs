@@ -26,11 +26,13 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.NameAr).IsRequired().HasMaxLength(200);
             entity.Property(e => e.NameEn).HasMaxLength(200);
+            entity.Property(e => e.NormalizedNameAr).HasMaxLength(200);
             entity.Property(e => e.OfficialWebsite).HasMaxLength(500);
             entity.Property(e => e.Location).HasMaxLength(500);
             entity.Property(e => e.Fees).HasPrecision(18, 2);
             entity.Property(e => e.LastYearCoordination).HasPrecision(18, 2);
             entity.HasIndex(e => e.NameAr);
+            entity.HasIndex(e => e.NormalizedNameAr);
             entity.HasIndex(e => e.Type);
             entity.HasIndex(e => e.Governorate);
             entity.HasIndex(e => e.IsDeleted);
@@ -45,6 +47,7 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.NameAr).IsRequired().HasMaxLength(200);
             entity.Property(e => e.NameEn).HasMaxLength(200);
+            entity.Property(e => e.NormalizedNameAr).HasMaxLength(200);
             entity.Property(e => e.OfficialWebsite).HasMaxLength(500);
             entity.Property(e => e.Location).HasMaxLength(500);
             entity.Property(e => e.Fees).HasPrecision(18, 2);
@@ -66,6 +69,7 @@ public class ApplicationDbContext : DbContext
                   
             entity.HasIndex(e => e.UniversityId);
             entity.HasIndex(e => e.NameAr);
+            entity.HasIndex(e => e.NormalizedNameAr);
             entity.HasIndex(e => e.IsDeleted);
             // Composite index for common queries
             entity.HasIndex(e => new { e.UniversityId, e.IsDeleted });
@@ -77,6 +81,7 @@ public class ApplicationDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.NameAr).IsRequired().HasMaxLength(200);
             entity.Property(e => e.NameEn).HasMaxLength(200);
+            entity.Property(e => e.NormalizedNameAr).HasMaxLength(200);
             
             entity.HasOne(e => e.College)
                   .WithMany(c => c.Departments)
@@ -85,6 +90,7 @@ public class ApplicationDbContext : DbContext
                   
             entity.HasIndex(e => e.CollegeId);
             entity.HasIndex(e => e.NameAr);
+            entity.HasIndex(e => e.NormalizedNameAr);
             entity.HasIndex(e => e.IsDeleted);
             entity.HasIndex(e => e.StudyType);
             // Composite index for common queries

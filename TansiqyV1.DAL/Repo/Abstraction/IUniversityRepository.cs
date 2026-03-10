@@ -12,6 +12,20 @@ public interface IUniversityRepository : IGenericRepository<University>
     Task<University?> GetByIdWithDetailsAsync(int id);
     Task<Dictionary<int, int>> GetBranchCountsByUniversityIdsAsync(List<int> universityIds);
     Task<Dictionary<UniversityType, int>> GetUniversityCountsByTypeAsync();
+    
+    // Intelligent Arabic Search Methods
+    Task<IEnumerable<University>> SearchIntelligentAsync(
+        string? searchTerm, 
+        UniversityType? type, 
+        Governorate? governorate, 
+        decimal? minFees, 
+        decimal? maxFees, 
+        StudyType? studyType = null, 
+        decimal? minCoordination = null, 
+        decimal? maxCoordination = null, 
+        string? collegeName = null);
+    
+    Task<IEnumerable<University>> SearchByNameIntelligentAsync(string searchTerm);
 }
 
 
