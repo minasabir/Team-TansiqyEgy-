@@ -8,6 +8,7 @@
 
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Http" Version="2.2.2" />
     <ProjectReference Include="..\TansiqyV1.DAL\TansiqyV1.DAL.csproj" />
   </ItemGroup>
 

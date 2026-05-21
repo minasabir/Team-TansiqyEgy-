@@ -20,6 +20,12 @@ public class UpdateBranchDto
 
     [StringLength(500, ErrorMessage = "الموقع لا يجب أن يتجاوز 500 حرف")]
     public string? Location { get; set; }
+
+    [StringLength(500, ErrorMessage = "الوصف لا يجب أن يتجاوز 500 حرف")]
+    public string? Description { get; set; }
+
+    [StringLength(200, ErrorMessage = "معلومات الاتصال لا يجب أن يتجاوز 200 حرف")]
+    public string? ContactInfo { get; set; }
 }
 
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using TansiqyV1.BLL.ModelVM;
 using TansiqyV1.BLL.Services.Abstraction;
@@ -14,17 +15,89 @@ public class UniversityService : IUniversityService
     private readonly ICollegeRepository _collegeRepository;
     private readonly IGenericRepository<Department> _departmentRepository;
     private readonly IGenericRepository<UniversityBranch> _branchRepository;
+    private readonly string _uploadsDirectory;
+    private bool _uploadsDirectoryCreated = false;
 
     public UniversityService(
         IUniversityRepository universityRepository,
         ICollegeRepository collegeRepository,
         IGenericRepository<Department> departmentRepository,
-        IGenericRepository<UniversityBranch> branchRepository)
+        IGenericRepository<UniversityBranch> branchRepository,
+        string uploadsPath)
     {
         _universityRepository = universityRepository;
         _collegeRepository = collegeRepository;
         _departmentRepository = departmentRepository;
         _branchRepository = branchRepository;
+        _uploadsDirectory = uploadsPath;
+    }
+
+    private void EnsureUploadsDirectoryExists()
+    {
+        if (!_uploadsDirectoryCreated && !Directory.Exists(_uploadsDirectory))
+        {
+            try
+            {
+                Directory.CreateDirectory(_uploadsDirectory);
+                _uploadsDirectoryCreated = true;
+            }
+            catch
+            {
+                // Silently ignore - we'll handle file save errors when they occur
+            }
+        }
+    }
+
+    private async Task<string?> SaveImageAsync(IFormFile? imageFile)
+    {
+        if (imageFile == null || imageFile.Length == 0)
+            return null;
+
+        // Validate file type
+        var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+        if (!allowedTypes.Contains(imageFile.ContentType.ToLower()))
+            throw new ArgumentException("Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.");
+
+        // Generate unique file name
+        var extension = Path.GetExtension(imageFile.FileName).ToLowerInvariant();
+        if (string.IsNullOrEmpty(extension) || !new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" }.Contains(extension))
+            extension = ".jpg";
+
+        var fileName = $"{Guid.NewGuid():N}{extension}";
+
+        // Ensure directory exists before saving
+        EnsureUploadsDirectoryExists();
+
+        var filePath = Path.Combine(_uploadsDirectory, fileName);
+
+        // Save file
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await imageFile.CopyToAsync(stream);
+        }
+
+        // Return relative path for database storage
+        return $"/uploads/universities/{fileName}";
+    }
+
+    private void DeleteImage(string? imagePath)
+    {
+        if (string.IsNullOrWhiteSpace(imagePath))
+            return;
+
+        try
+        {
+            var fileName = Path.GetFileName(imagePath);
+            var filePath = Path.Combine(_uploadsDirectory, fileName);
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+        catch
+        {
+            // Silently ignore deletion errors
+        }
     }
 
     public async Task<IEnumerable<UniversityTypeViewModel>> GetUniversityTypesAsync()
@@ -64,6 +137,7 @@ public class UniversityService : IUniversityService
             Fees = u.Fees,
             InformationSources = u.InformationSources,
             Description = u.Description,
+            Image = u.Image,
             CollegesCount = collegeCounts.GetValueOrDefault(u.Id, 0),
             BranchesCount = branchCounts.GetValueOrDefault(u.Id, 0),
             Colleges = new List<CollegeViewModel>(),
@@ -91,6 +165,7 @@ public class UniversityService : IUniversityService
             Fees = university.Fees,
             InformationSources = university.InformationSources,
             Description = university.Description,
+            Image = university.Image,
             CollegesCount = university.Colleges.Count,
             BranchesCount = university.Branches.Count,
             Colleges = university.Colleges.Select(c => new CollegeViewModel
@@ -160,6 +235,7 @@ public class UniversityService : IUniversityService
             Fees = u.Fees,
             InformationSources = u.InformationSources,
             Description = u.Description,
+            Image = u.Image,
             CollegesCount = !string.IsNullOrWhiteSpace(collegeName) ? 
                 u.Colleges.Count(c => c.NameAr.Contains(collegeName) || (c.NameEn != null && c.NameEn.Contains(collegeName))) : 
                 u.Colleges.Count,
@@ -211,6 +287,7 @@ public class UniversityService : IUniversityService
             Fees = u.Fees,
             InformationSources = u.InformationSources,
             Description = u.Description,
+            Image = u.Image,
             CollegesCount = collegeCounts.GetValueOrDefault(u.Id, 0),
             BranchesCount = branchCounts.GetValueOrDefault(u.Id, 0),
             Colleges = new List<CollegeViewModel>(),
@@ -259,6 +336,7 @@ public class UniversityService : IUniversityService
             Fees = u.Fees,
             InformationSources = u.InformationSources,
             Description = u.Description,
+            Image = u.Image,
             CollegesCount = !string.IsNullOrWhiteSpace(collegeName) ?
                 u.Colleges.Count(c => ArabicTextNormalizer.Contains(c.NameAr, collegeName)) :
                 u.Colleges.Count,
@@ -270,6 +348,14 @@ public class UniversityService : IUniversityService
                     Id = c.Id,
                     NameAr = c.NameAr,
                     UniversityId = c.UniversityId,
+                    Fees = c.Fees,  // Use College fees, not University
+                    LastYearCoordination = c.LastYearCoordination,  // Use College coordination, not University
+                    FeesCategoryA = c.FeesCategoryA,
+                    FeesCategoryB = c.FeesCategoryB,
+                    FeesCategoryC = c.FeesCategoryC,
+                    FeesPerHour = c.FeesPerHour,
+                    MinimumHoursPerSemester = c.MinimumHoursPerSemester,
+                    AdditionalFees = c.AdditionalFees,
                     Departments = c.Departments.Select(d => new DepartmentViewModel
                     {
                         Id = d.Id,
@@ -283,18 +369,23 @@ public class UniversityService : IUniversityService
         });
     }
 
-    public async Task<IEnumerable<UniversityViewModel>> SearchUniversitiesByNameIntelligentAsync(string searchTerm)
+    // Combined Intelligent Arabic Search - returns both universities and colleges
+    public async Task<SearchResultViewModel> SearchByNameIntelligentAsync(string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
-            return new List<UniversityViewModel>();
+            return new SearchResultViewModel
+            {
+                Universities = new List<UniversityViewModel>(),
+                Colleges = new List<CollegeViewModel>()
+            };
 
+        // Search universities
         var universities = await _universityRepository.SearchByNameIntelligentAsync(searchTerm);
-
         var universityIds = universities.Select(u => u.Id).ToList();
         var collegeCounts = await _collegeRepository.GetCountsByUniversityIdsAsync(universityIds);
         var branchCounts = await _universityRepository.GetBranchCountsByUniversityIdsAsync(universityIds);
 
-        return universities.Select(u => new UniversityViewModel
+        var universityViewModels = universities.Select(u => new UniversityViewModel
         {
             Id = u.Id,
             NameAr = u.NameAr,
@@ -309,10 +400,116 @@ public class UniversityService : IUniversityService
             Fees = u.Fees,
             InformationSources = u.InformationSources,
             Description = u.Description,
+            Image = u.Image,
             CollegesCount = collegeCounts.GetValueOrDefault(u.Id, 0),
             BranchesCount = branchCounts.GetValueOrDefault(u.Id, 0),
             Colleges = new List<CollegeViewModel>(),
             Branches = new List<BranchViewModel>()
+        }).ToList();
+
+        // Search colleges
+        var colleges = await _collegeRepository.SearchByNameIntelligentAsync(searchTerm);
+        var collegeViewModels = colleges.Select(c => new CollegeViewModel
+        {
+            Id = c.Id,
+            NameAr = c.NameAr,
+            NameEn = c.NameEn,
+            UniversityId = c.UniversityId,
+            OfficialWebsite = c.OfficialWebsite,
+            Location = c.Location,
+            Description = c.Description,
+            Fees = c.Fees,
+            LastYearCoordination = c.LastYearCoordination,
+            FeesCategoryA = c.FeesCategoryA,
+            FeesCategoryB = c.FeesCategoryB,
+            FeesCategoryC = c.FeesCategoryC,
+            FeesPerHour = c.FeesPerHour,
+            MinimumHoursPerSemester = c.MinimumHoursPerSemester,
+            AdditionalFees = c.AdditionalFees,
+            DepartmentsCount = c.Departments.Count,
+            University = c.University != null ? new UniversityBasicViewModel
+            {
+                Id = c.University.Id,
+                NameAr = c.University.NameAr,
+                Type = (int)c.University.Type,
+                TypeAr = c.University.Type.GetDescription()
+            } : null,
+            Departments = c.Departments.Select(d => new DepartmentViewModel
+            {
+                Id = d.Id,
+                NameAr = d.NameAr,
+                NameEn = d.NameEn,
+                StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
+                StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null,
+                Description = d.Description
+            }).ToList()
+        }).ToList();
+
+        return new SearchResultViewModel
+        {
+            Universities = universityViewModels,
+            Colleges = collegeViewModels
+        };
+    }
+
+    // Search colleges with filters - returns colleges directly
+    public async Task<IEnumerable<CollegeViewModel>> SearchCollegesIntelligentAsync(
+        string? searchTerm,
+        UniversityType? type,
+        Governorate? governorate,
+        StudyType? studyType,
+        decimal? minFees,
+        decimal? maxFees,
+        decimal? minCoordination,
+        decimal? maxCoordination,
+        string? collegeName = null)
+    {
+        // Get all colleges with their universities
+        var colleges = await _collegeRepository.SearchIntelligentWithFiltersAsync(
+            searchTerm,
+            type,
+            governorate,
+            studyType,
+            minFees,
+            maxFees,
+            minCoordination,
+            maxCoordination,
+            collegeName);
+
+        return colleges.Select(c => new CollegeViewModel
+        {
+            Id = c.Id,
+            NameAr = c.NameAr,
+            NameEn = c.NameEn,
+            UniversityId = c.UniversityId,
+            OfficialWebsite = c.OfficialWebsite,
+            Location = c.Location,
+            Description = c.Description,
+            Fees = c.Fees,
+            LastYearCoordination = c.LastYearCoordination,
+            FeesCategoryA = c.FeesCategoryA,
+            FeesCategoryB = c.FeesCategoryB,
+            FeesCategoryC = c.FeesCategoryC,
+            FeesPerHour = c.FeesPerHour,
+            MinimumHoursPerSemester = c.MinimumHoursPerSemester,
+            AdditionalFees = c.AdditionalFees,
+            DepartmentsCount = c.Departments.Count,
+            University = c.University != null ? new UniversityBasicViewModel
+            {
+                Id = c.University.Id,
+                NameAr = c.University.NameAr,
+                Type = (int)c.University.Type,
+                TypeAr = c.University.Type.GetDescription()
+            } : null,
+            Departments = c.Departments.Select(d => new DepartmentViewModel
+            {
+                Id = d.Id,
+                NameAr = d.NameAr,
+                NameEn = d.NameEn,
+                StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
+                StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null,
+                Description = d.Description
+            }).ToList()
         });
     }
 
@@ -402,9 +599,45 @@ public class UniversityService : IUniversityService
         };
     }
 
+    public async Task<SimpleDepartmentViewModel?> GetDepartmentByIdAsync(int id)
+    {
+        var department = await _departmentRepository.GetByIdAsync(id);
+        if (department == null) return null;
+
+        return new SimpleDepartmentViewModel
+        {
+            NameAr = department.NameAr,
+            NameEn = department.NameEn,
+            Description = department.Description
+        };
+    }
+
+    public async Task<BranchViewModel?> GetBranchByIdAsync(int id)
+    {
+        var branch = await _branchRepository.GetByIdAsync(id);
+        if (branch == null) return null;
+
+        return new BranchViewModel
+        {
+            Id = branch.Id,
+            NameAr = branch.NameAr,
+            NameEn = branch.NameEn,
+            Location = branch.Location,
+            Governorate = (int)branch.Governorate,
+            GovernorateAr = branch.Governorate.GetDescription()
+        };
+    }
+
     // Create Methods
     public async Task<UniversityViewModel> CreateUniversityAsync(CreateUniversityDto dto)
     {
+        // Handle image upload if provided
+        string? imagePath = null;
+        if (dto.ImageFile != null)
+        {
+            imagePath = await SaveImageAsync(dto.ImageFile);
+        }
+
         var university = new University
         {
             NameAr = dto.NameAr,
@@ -418,6 +651,7 @@ public class UniversityService : IUniversityService
             Fees = dto.Fees,
             InformationSources = dto.InformationSources,
             Description = dto.Description,
+            Image = imagePath,
             CreatedAt = DateTime.Now
         };
 
@@ -561,6 +795,23 @@ public class UniversityService : IUniversityService
         if (university == null)
             throw new ArgumentException($"University with ID {dto.Id} not found");
 
+        // Handle image changes
+        if (dto.RemoveImage && !string.IsNullOrEmpty(university.Image))
+        {
+            DeleteImage(university.Image);
+            university.Image = null;
+        }
+        else if (dto.ImageFile != null)
+        {
+            // Delete old image if exists
+            if (!string.IsNullOrEmpty(university.Image))
+            {
+                DeleteImage(university.Image);
+            }
+            // Save new image
+            university.Image = await SaveImageAsync(dto.ImageFile);
+        }
+
         university.NameAr = dto.NameAr;
         university.NameEn = dto.NameEn;
         university.NormalizedNameAr = ArabicTextNormalizer.Normalize(dto.NameAr);
@@ -689,6 +940,12 @@ public class UniversityService : IUniversityService
         var university = await _universityRepository.GetByIdAsync(id);
         if (university == null)
             return false;
+
+        // Delete associated image if exists
+        if (!string.IsNullOrEmpty(university.Image))
+        {
+            DeleteImage(university.Image);
+        }
 
         await _universityRepository.DeleteAsync(id);
         return true;

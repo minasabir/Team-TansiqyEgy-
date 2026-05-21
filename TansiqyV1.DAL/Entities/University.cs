@@ -21,6 +21,7 @@ public class University : BaseEntity
     public decimal? Fees { get; set; } // المصاريف
     public string? InformationSources { get; set; } // مصادر المعلومات
     public string? Description { get; set; }
+    public string? Image { get; set; } // مسار صورة الجامعة
 
     // Navigation Properties
     public virtual ICollection<College> Colleges { get; set; } = new List<College>();

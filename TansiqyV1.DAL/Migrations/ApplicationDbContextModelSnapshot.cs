@@ -227,6 +227,10 @@ namespace TansiqyV1.DAL.Migrations
                     b.Property<int>("Governorate")
                         .HasColumnType("int");
 
+                    b.Property<string>("Image")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("InformationSources")
                         .HasColumnType("nvarchar(max)");
 

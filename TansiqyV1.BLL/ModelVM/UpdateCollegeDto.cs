@@ -47,13 +47,12 @@ public class UpdateCollegeDto
     [Range(0, double.MaxValue, ErrorMessage = "مصروفات الساعة يجب أن تكون قيمة موجبة")]
     public decimal? FeesPerHour { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "الحد الأدنى للساعات يجب أن يكون قيمة موجبة")]
+    [Range(0, int.MaxValue, ErrorMessage = "الحد الأدنى للساعات يجب أن تكون قيمة موجبة")]
     public int? MinimumHoursPerSemester { get; set; }
 
     [Range(0, double.MaxValue, ErrorMessage = "المصاريف الإضافية يجب أن تكون قيمة موجبة")]
     public decimal? AdditionalFees { get; set; }
 }
-
 
 
 

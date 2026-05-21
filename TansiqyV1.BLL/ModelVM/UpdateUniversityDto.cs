@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using TansiqyV1.DAL.Enums;
 
 namespace TansiqyV1.BLL.ModelVM;
@@ -36,6 +37,12 @@ public class UpdateUniversityDto
 
     public string? InformationSources { get; set; }
     public string? Description { get; set; }
+
+    // للصورة (اختياري - null يعني عدم تغيير الصورة)
+    public IFormFile? ImageFile { get; set; }
+
+    // true لحذف الصورة الحالية
+    public bool RemoveImage { get; set; }
 }
 
 

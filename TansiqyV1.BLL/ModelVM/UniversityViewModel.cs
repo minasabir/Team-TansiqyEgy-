@@ -17,6 +17,7 @@ public class UniversityViewModel
     public decimal? Fees { get; set; }
     public string? InformationSources { get; set; }
     public string? Description { get; set; }
+    public string? Image { get; set; }
     public int CollegesCount { get; set; }
     public int BranchesCount { get; set; }
     public List<CollegeViewModel> Colleges { get; set; } = new();

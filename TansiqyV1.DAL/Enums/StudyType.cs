@@ -17,5 +17,8 @@ public enum StudyType
     Industrial = 4,
     
     [Description("أمريكان")]
-    American = 5
+    American = 5,
+    
+    [Description("للجميع")]
+    All = 6
 }

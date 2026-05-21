@@ -31,6 +31,7 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Location).HasMaxLength(500);
             entity.Property(e => e.Fees).HasPrecision(18, 2);
             entity.Property(e => e.LastYearCoordination).HasPrecision(18, 2);
+            entity.Property(e => e.Image).HasMaxLength(500);
             entity.HasIndex(e => e.NameAr);
             entity.HasIndex(e => e.NormalizedNameAr);
             entity.HasIndex(e => e.Type);

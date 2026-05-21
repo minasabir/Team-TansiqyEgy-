@@ -10,6 +10,7 @@ using TansiqyV1.DAL.Repo.Abstraction;
 using TansiqyV1.DAL.Repo.Implementation;
 using TansiqyV1.BLL.Services.Abstraction;
 using TansiqyV1.BLL.Services.Implementation;
+using TansiqyV1.API;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -166,29 +167,75 @@ builder.Services.AddScoped<ICollegeRepository, CollegeRepository>();
 builder.Services.AddScoped<TansiqyV1.DAL.Repo.Abstraction.INewsRepository, TansiqyV1.DAL.Repo.Implementation.NewsRepository>();
 
 // Register Services
-builder.Services.AddScoped<IUniversityService, UniversityService>();
+builder.Services.AddScoped<IUniversityService>(sp =>
+{
+    try
+    {
+        var universityRepo = sp.GetRequiredService<IUniversityRepository>();
+        var collegeRepo = sp.GetRequiredService<ICollegeRepository>();
+        var departmentRepo = sp.GetRequiredService<IGenericRepository<TansiqyV1.DAL.Entities.Department>>();
+        var branchRepo = sp.GetRequiredService<IGenericRepository<TansiqyV1.DAL.Entities.UniversityBranch>>();
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger<UniversityService>();
+        
+        var webRootPath = !string.IsNullOrEmpty(env.WebRootPath) 
+            ? env.WebRootPath 
+            : Path.Combine(env.ContentRootPath, "wwwroot");
+        var uploadsPath = Path.Combine(webRootPath, "uploads", "universities");
+        
+        logger.LogInformation("UniversityService initializing with uploads path: {UploadsPath}", uploadsPath);
+        
+        return new UniversityService(universityRepo, collegeRepo, departmentRepo, branchRepo, uploadsPath);
+    }
+    catch (Exception ex)
+    {
+        var loggerFactory = sp.GetService<ILoggerFactory>();
+        var logger = loggerFactory?.CreateLogger<Program>() ?? 
+                     sp.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Failed to initialize UniversityService");
+        throw;
+    }
+});
 builder.Services.AddScoped<TansiqyV1.BLL.Services.Abstraction.INewsService, TansiqyV1.BLL.Services.Implementation.NewsService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
 var app = builder.Build();
 
 // Apply database migrations
-using (var scope = app.Services.CreateScope())
+try
 {
-    var services = scope.ServiceProvider;
-    try
+    using (var scope = app.Services.CreateScope())
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
+        var services = scope.ServiceProvider;
         var logger = services.GetRequiredService<ILogger<Program>>();
         
-        // Apply pending migrations
-        await context.Database.MigrateAsync();
+        try
+        {
+            var context = services.GetRequiredService<ApplicationDbContext>();
+            
+            // Test database connectivity first
+            if (await context.Database.CanConnectAsync())
+            {
+                await context.Database.MigrateAsync();
+                logger.LogInformation("Database migrations applied successfully.");
+            }
+            else
+            {
+                logger.LogError("Cannot connect to database. Migrations skipped.");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while applying database migrations.");
+            // Don't throw - allow app to start even if migrations fail
+        }
     }
-    catch (Exception ex)
-    {
-        var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while applying database migrations.");
-    }
+}
+catch (Exception ex)
+{
+    // Log to console as fallback if service provider fails
+    Console.WriteLine($"Critical error during migration setup: {ex.Message}");
 }
 
 // Configure the HTTP request pipeline.
@@ -211,6 +258,9 @@ app.UseSwaggerUI(c =>
 app.UseCors("AllowAll");
 
 app.UseHttpsRedirection();
+
+// Serve static files from wwwroot (for uploaded images)
+app.UseStaticFiles();
 
 // Use Response Caching
 app.UseResponseCaching();

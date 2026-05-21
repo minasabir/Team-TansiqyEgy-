@@ -54,17 +54,17 @@ public class UniversityRepository : GenericRepository<University>, IUniversityRe
 
         // Fees range filter
         if (minFees.HasValue)
-            query = query.Where(u => u.Fees.HasValue && u.Fees >= minFees.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.Fees.HasValue && c.Fees >= minFees.Value));
 
         if (maxFees.HasValue)
-            query = query.Where(u => u.Fees.HasValue && u.Fees <= maxFees.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.Fees.HasValue && c.Fees <= maxFees.Value));
 
         // Coordination range filter
         if (minCoordination.HasValue)
-            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination >= minCoordination.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.LastYearCoordination.HasValue && c.LastYearCoordination >= minCoordination.Value));
 
         if (maxCoordination.HasValue)
-            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination <= maxCoordination.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.LastYearCoordination.HasValue && c.LastYearCoordination <= maxCoordination.Value));
 
         // Study type filter - filter universities that have departments with the specified study type
         if (studyType.HasValue)
@@ -185,16 +185,16 @@ public class UniversityRepository : GenericRepository<University>, IUniversityRe
             query = query.Where(u => u.Governorate == governorate.Value);
 
         if (minFees.HasValue)
-            query = query.Where(u => u.Fees.HasValue && u.Fees >= minFees.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.Fees.HasValue && c.Fees >= minFees.Value));
 
         if (maxFees.HasValue)
-            query = query.Where(u => u.Fees.HasValue && u.Fees <= maxFees.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.Fees.HasValue && c.Fees <= maxFees.Value));
 
         if (minCoordination.HasValue)
-            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination >= minCoordination.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.LastYearCoordination.HasValue && c.LastYearCoordination >= minCoordination.Value));
 
         if (maxCoordination.HasValue)
-            query = query.Where(u => u.LastYearCoordination.HasValue && u.LastYearCoordination <= maxCoordination.Value);
+            query = query.Where(u => u.Colleges.Any(c => !c.IsDeleted && c.LastYearCoordination.HasValue && c.LastYearCoordination <= maxCoordination.Value));
 
         if (studyType.HasValue)
         {

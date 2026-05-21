@@ -34,10 +34,27 @@ public interface IUniversityService
         decimal? maxCoordination,
         string? collegeName = null
     );
-    Task<IEnumerable<UniversityViewModel>> SearchUniversitiesByNameIntelligentAsync(string searchTerm);
+
+    // Combined search by name only - returns both universities and colleges
+    Task<SearchResultViewModel> SearchByNameIntelligentAsync(string searchTerm);
+
+    // Search colleges with filters - returns colleges directly
+    Task<IEnumerable<CollegeViewModel>> SearchCollegesIntelligentAsync(
+        string? searchTerm,
+        UniversityType? type,
+        Governorate? governorate,
+        StudyType? studyType,
+        decimal? minFees,
+        decimal? maxFees,
+        decimal? minCoordination,
+        decimal? maxCoordination,
+        string? collegeName = null
+    );
     
     Task<IEnumerable<CollegeViewModel>> GetCollegesByUniversityIdAsync(int universityId);
     Task<CollegeViewModel?> GetCollegeByIdAsync(int collegeId);
+    Task<SimpleDepartmentViewModel?> GetDepartmentByIdAsync(int id);
+    Task<BranchViewModel?> GetBranchByIdAsync(int id);
 
     // Create Methods
     Task<UniversityViewModel> CreateUniversityAsync(CreateUniversityDto dto);
@@ -57,4 +74,3 @@ public interface IUniversityService
     Task<bool> DeleteDepartmentAsync(int id);
     Task<bool> DeleteBranchAsync(int id);
 }
-

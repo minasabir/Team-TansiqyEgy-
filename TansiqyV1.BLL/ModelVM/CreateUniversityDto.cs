@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using TansiqyV1.DAL.Enums;
 
 namespace TansiqyV1.BLL.ModelVM;
@@ -36,6 +37,9 @@ public class CreateUniversityDto
 
     // للفروع (اختياري)
     public List<CreateBranchDto>? Branches { get; set; }
+
+    // للصورة (اختياري)
+    public IFormFile? ImageFile { get; set; }
 }
 
 

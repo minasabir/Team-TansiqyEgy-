@@ -20,10 +20,47 @@ public class UniversitiesController : ControllerBase
         _logger = logger;
     }
 
-    /// <summary>
-    /// Get all university types with counts
-    /// </summary>
-    /// <returns>List of university types with Arabic names and counts</returns>
+    // ==========================================
+    // UNIVERSITY CRUD OPERATIONS
+    // ==========================================
+
+    // READ - Universities
+    [HttpGet]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> GetAll()
+    {
+        try
+        {
+            var universities = await _universityService.SearchUniversitiesIntelligentAsync(
+                null, null, null, null, null, null, null, null, null);
+            return Ok(universities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all universities");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
+    [HttpPut]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> GetAllPut()
+    {
+        try
+        {
+            var universities = await _universityService.SearchUniversitiesIntelligentAsync(
+                null, null, null, null, null, null, null, null, null);
+            return Ok(universities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting all universities");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
     [HttpGet("types")]
     [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -41,11 +78,6 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Get all universities by type
-    /// </summary>
-    /// <param name="type">University type (1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign, 6=Technological)</param>
-    /// <returns>List of universities</returns>
     [HttpGet("type/{type}")]
     [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "type" })]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -75,11 +107,6 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Get university by ID
-    /// </summary>
-    /// <param name="id">University ID</param>
-    /// <returns>University details</returns>
     [HttpGet("{id}")]
     [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -104,189 +131,171 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Search universities by name only (for search bar)
-    /// </summary>
-    /// <param name="searchTerm">Search term (searches in university name only)</param>
-    /// <returns>List of matching universities</returns>
-    [HttpGet("search/name")]
-    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm" })]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> SearchByName([FromQuery] string searchTerm)
+    // CREATE - Universities
+    [HttpPost]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> CreateUniversity([FromForm] BLL.ModelVM.CreateUniversityDto dto)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(searchTerm))
+            if (!ModelState.IsValid)
             {
-                return Ok(new List<BLL.ModelVM.UniversityViewModel>());
+                return BadRequest(ModelState);
             }
 
-            var universities = await _universityService.SearchUniversitiesByNameAsync(searchTerm);
-            return Ok(universities);
+            var university = await _universityService.CreateUniversityAsync(dto);
+            return Created($"/api/Universities/{university.Id}", university);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching universities by name");
-            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+            _logger.LogError(ex, "Error creating university");
+            return StatusCode(500, new { message = "An error occurred while creating the university", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Search universities with filters
-    /// </summary>
-    /// <param name="searchTerm">Search term (searches in name only - strict filtering)</param>
-    /// <param name="type">University type (1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign, 6=Technological)</param>
-    /// <param name="governorate">Governorate ID</param>
-    /// <param name="studyType">Study type (1=Math, 2=Science, 3=Literary, 4=Industrial, 5=American)</param>
-    /// <param name="minFees">Minimum fees</param>
-    /// <param name="maxFees">Maximum fees</param>
-    /// <param name="minCoordination">Minimum coordination</param>
-    /// <param name="maxCoordination">Maximum coordination</param>
-    /// <param name="collegeName">College name (searches in college name)</param>
-    /// <returns>List of matching universities</returns>
-    [HttpGet("search")]
-    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm", "type", "governorate", "studyType", "minFees", "maxFees", "minCoordination", "maxCoordination", "collegeName" })]
+    // UPDATE - Universities
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> Search(
-        [FromQuery] string? searchTerm = null,
-        [FromQuery] int? type = null,
-        [FromQuery] int? governorate = null,
-        [FromQuery] int? studyType = null,
-        [FromQuery] decimal? minFees = null,
-        [FromQuery] decimal? maxFees = null,
-        [FromQuery] decimal? minCoordination = null,
-        [FromQuery] decimal? maxCoordination = null,
-        [FromQuery] string? collegeName = null)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> UpdateUniversity(
+        int id,
+        [FromForm] BLL.ModelVM.UpdateUniversityDto dto)
     {
         try
         {
-            UniversityType? universityType = type.HasValue && Enum.IsDefined(typeof(UniversityType), type.Value)
-                ? (UniversityType?)type.Value
-                : null;
-
-            Governorate? governorateEnum = governorate.HasValue && Enum.IsDefined(typeof(Governorate), governorate.Value)
-                ? (Governorate?)governorate.Value
-                : null;
-
-            StudyType? studyTypeEnum = studyType.HasValue && Enum.IsDefined(typeof(StudyType), studyType.Value)
-                ? (StudyType?)studyType.Value
-                : null;
-
-            var universities = await _universityService.SearchUniversitiesAsync(
-                searchTerm,
-                universityType,
-                governorateEnum,
-                studyTypeEnum,
-                minFees,
-                maxFees,
-                minCoordination,
-                maxCoordination,
-                collegeName);
-
-            return Ok(universities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error searching universities");
-            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Search universities with filters using intelligent Arabic text matching
-    /// Handles Arabic letter variations, diacritics, and morphological forms
-    /// </summary>
-    /// <param name="searchTerm">Search term (intelligent Arabic matching)</param>
-    /// <param name="type">University type (1=Governmental, 2=Private, 3=National, 4=HigherInstitute, 5=Foreign, 6=Technological)</param>
-    /// <param name="governorate">Governorate ID</param>
-    /// <param name="studyType">Study type (1=Math, 2=Science, 3=Literary, 4=Industrial, 5=American)</param>
-    /// <param name="minFees">Minimum fees</param>
-    /// <param name="maxFees">Maximum fees</param>
-    /// <param name="minCoordination">Minimum coordination</param>
-    /// <param name="maxCoordination">Maximum coordination</param>
-    /// <param name="collegeName">College name (intelligent Arabic matching)</param>
-    /// <returns>List of matching universities with intelligent Arabic search</returns>
-    [HttpGet("search/intelligent")]
-    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm", "type", "governorate", "studyType", "minFees", "maxFees", "minCoordination", "maxCoordination", "collegeName" })]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> SearchIntelligent(
-        [FromQuery] string? searchTerm = null,
-        [FromQuery] int? type = null,
-        [FromQuery] int? governorate = null,
-        [FromQuery] int? studyType = null,
-        [FromQuery] decimal? minFees = null,
-        [FromQuery] decimal? maxFees = null,
-        [FromQuery] decimal? minCoordination = null,
-        [FromQuery] decimal? maxCoordination = null,
-        [FromQuery] string? collegeName = null)
-    {
-        try
-        {
-            UniversityType? universityType = type.HasValue && Enum.IsDefined(typeof(UniversityType), type.Value)
-                ? (UniversityType?)type.Value
-                : null;
-
-            Governorate? governorateEnum = governorate.HasValue && Enum.IsDefined(typeof(Governorate), governorate.Value)
-                ? (Governorate?)governorate.Value
-                : null;
-
-            StudyType? studyTypeEnum = studyType.HasValue && Enum.IsDefined(typeof(StudyType), studyType.Value)
-                ? (StudyType?)studyType.Value
-                : null;
-
-            var universities = await _universityService.SearchUniversitiesIntelligentAsync(
-                searchTerm,
-                universityType,
-                governorateEnum,
-                studyTypeEnum,
-                minFees,
-                maxFees,
-                minCoordination,
-                maxCoordination,
-                collegeName);
-
-            return Ok(universities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error performing intelligent Arabic search");
-            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Search universities by name only using intelligent Arabic text matching
-    /// Handles Arabic letter variations, diacritics, and morphological forms
-    /// </summary>
-    /// <param name="searchTerm">Search term (intelligent Arabic matching)</param>
-    /// <returns>List of matching universities with intelligent Arabic search</returns>
-    [HttpGet("search/name/intelligent")]
-    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm" })]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BLL.ModelVM.UniversityViewModel>>> SearchByNameIntelligent([FromQuery] string searchTerm)
-    {
-        try
-        {
-            if (string.IsNullOrWhiteSpace(searchTerm))
+            // Override the Id from route
+            dto.Id = id;
+            
+            if (!Enum.IsDefined(typeof(UniversityType), dto.Type))
             {
-                return Ok(new List<BLL.ModelVM.UniversityViewModel>());
+                return BadRequest(new { message = "Invalid university type" });
             }
 
-            var universities = await _universityService.SearchUniversitiesByNameIntelligentAsync(searchTerm);
-            return Ok(universities);
+            if (!Enum.IsDefined(typeof(Governorate), dto.Governorate))
+            {
+                return BadRequest(new { message = "Invalid governorate" });
+            }
+
+            var university = await _universityService.UpdateUniversityAsync(dto);
+            return Ok(university);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error searching universities by name with intelligent Arabic matching");
-            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+            _logger.LogError(ex, "Error updating university");
+            return StatusCode(500, new { message = "An error occurred while updating the university", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Get all colleges for a specific university
-    /// </summary>
-    /// <param name="id">University ID</param>
-    /// <returns>List of colleges</returns>
+    [HttpPatch("{id}")]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> PatchUniversity(
+        int id,
+        [FromForm] BLL.ModelVM.PatchUniversityDto dto)
+    {
+        try
+        {
+            // Get existing university to fill in missing values
+            var existing = await _universityService.GetUniversityByIdAsync(id);
+            if (existing == null)
+            {
+                return NotFound(new { message = $"University with ID {id} not found" });
+            }
+
+            // Validate enum values if provided
+            if (dto.Type.HasValue && !Enum.IsDefined(typeof(UniversityType), dto.Type.Value))
+            {
+                return BadRequest(new { message = "Invalid university type" });
+            }
+
+            if (dto.Governorate.HasValue && !Enum.IsDefined(typeof(Governorate), dto.Governorate.Value))
+            {
+                return BadRequest(new { message = "Invalid governorate" });
+            }
+
+            // Build full DTO from existing + provided values
+            // Use existing values when dto values are null or empty (form sends empty strings for missing fields)
+            var updateDto = new BLL.ModelVM.UpdateUniversityDto
+            {
+                Id = id,
+                NameAr = string.IsNullOrWhiteSpace(dto.NameAr) ? existing.NameAr : dto.NameAr,
+                NameEn = string.IsNullOrWhiteSpace(dto.NameEn) ? existing.NameEn : dto.NameEn,
+                Type = dto.Type ?? (UniversityType)existing.Type,
+                Governorate = dto.Governorate ?? (Governorate)existing.Governorate,
+                OfficialWebsite = string.IsNullOrWhiteSpace(dto.OfficialWebsite) ? existing.OfficialWebsite : dto.OfficialWebsite,
+                Location = string.IsNullOrWhiteSpace(dto.Location) ? existing.Location : dto.Location,
+                LastYearCoordination = dto.LastYearCoordination ?? existing.LastYearCoordination,
+                Fees = dto.Fees ?? existing.Fees,
+                InformationSources = string.IsNullOrWhiteSpace(dto.InformationSources) ? existing.InformationSources : dto.InformationSources,
+                Description = string.IsNullOrWhiteSpace(dto.Description) ? existing.Description : dto.Description,
+                ImageFile = dto.ImageFile,
+                RemoveImage = dto.RemoveImage
+            };
+
+            var university = await _universityService.UpdateUniversityAsync(updateDto);
+            return Ok(university);
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating university");
+            return StatusCode(500, new { message = "An error occurred while updating the university", error = ex.Message });
+        }
+    }
+
+    // DELETE - Universities
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> DeleteUniversity(int id)
+    {
+        try
+        {
+            var result = await _universityService.DeleteUniversityAsync(id);
+            if (!result)
+            {
+                return NotFound(new { message = $"University with ID {id} not found" });
+            }
+
+            return Ok(new { message = "University deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting university");
+            return StatusCode(500, new { message = "An error occurred while deleting the university", error = ex.Message });
+        }
+    }
+
+    // ==========================================
+    // COLLEGE CRUD OPERATIONS
+    // ==========================================
+
+    // READ - Colleges
     [HttpGet("{id}/colleges")]
     [ResponseCache(Duration = 180, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -312,40 +321,31 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Create a new university (Admin only)
-    /// </summary>
-    /// <param name="dto">University data</param>
-    /// <returns>Created university</returns>
-    [HttpPost]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> CreateUniversity([FromBody] BLL.ModelVM.CreateUniversityDto dto)
+    [HttpGet("colleges/{id}")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BLL.ModelVM.CollegeViewModel>> GetCollegeById(int id)
     {
         try
         {
-            if (!ModelState.IsValid)
+            var college = await _universityService.GetCollegeByIdAsync(id);
+            
+            if (college == null)
             {
-                return BadRequest(ModelState);
+                return NotFound(new { message = $"College with ID {id} not found" });
             }
 
-            var university = await _universityService.CreateUniversityAsync(dto);
-            return Created($"/api/Universities/{university.Id}", university);
+            return Ok(college);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating university");
-            return StatusCode(500, new { message = "An error occurred while creating the university", error = ex.Message });
+            _logger.LogError(ex, "Error getting college by ID");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Create a new college (Admin only)
-    /// </summary>
-    /// <param name="dto">College data</param>
-    /// <returns>Created college</returns>
+    // CREATE - Colleges
     [HttpPost("colleges")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
@@ -374,177 +374,7 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Create a new department (Admin only)
-    /// </summary>
-    /// <param name="dto">Department data</param>
-    /// <returns>Created department</returns>
-    [HttpPost("departments")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<BLL.ModelVM.DepartmentViewModel>> CreateDepartment([FromBody] BLL.ModelVM.CreateDepartmentDto dto)
-    {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var department = await _universityService.CreateDepartmentAsync(dto);
-            return Created($"/api/Colleges/{dto.CollegeId}/departments/{department.Id}", department);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating department");
-            return StatusCode(500, new { message = "An error occurred while creating the department", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Create a new branch for a university (Admin only)
-    /// </summary>
-    /// <param name="universityId">University ID</param>
-    /// <param name="dto">Branch data</param>
-    /// <returns>Created branch</returns>
-    [HttpPost("{universityId}/branches")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<BLL.ModelVM.BranchViewModel>> CreateBranch(int universityId, [FromBody] BLL.ModelVM.CreateBranchDto dto)
-    {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var branch = await _universityService.CreateBranchAsync(universityId, dto);
-            return Created($"/api/Universities/{universityId}/branches/{branch.Id}", branch);
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error creating branch");
-            return StatusCode(500, new { message = "An error occurred while creating the branch", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Update a university (Admin only)
-    /// </summary>
-    /// <param name="dto">University data</param>
-    /// <returns>Updated university</returns>
-    [HttpPut]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> UpdateUniversity([FromBody] BLL.ModelVM.UpdateUniversityDto dto)
-    {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var university = await _universityService.UpdateUniversityAsync(dto);
-            return Ok(university);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating university");
-            return StatusCode(500, new { message = "An error occurred while updating the university", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Update a university (Admin only) - PATCH
-    /// </summary>
-    /// <param name="id">University ID</param>
-    /// <param name="dto">University data</param>
-    /// <returns>Updated university</returns>
-    [HttpPatch("{id}")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BLL.ModelVM.UniversityViewModel>> PatchUniversity(int id, [FromBody] BLL.ModelVM.UpdateUniversityDto dto)
-    {
-        try
-        {
-            dto.Id = id; // Ensure ID matches route
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var university = await _universityService.UpdateUniversityAsync(dto);
-            return Ok(university);
-        }
-        catch (ArgumentException ex)
-        {
-            return NotFound(new { message = ex.Message });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating university");
-            return StatusCode(500, new { message = "An error occurred while updating the university", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Delete a university (Admin only)
-    /// </summary>
-    /// <param name="id">University ID</param>
-    /// <returns>Success status</returns>
-    [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult> DeleteUniversity(int id)
-    {
-        try
-        {
-            var result = await _universityService.DeleteUniversityAsync(id);
-            if (!result)
-            {
-                return NotFound(new { message = $"University with ID {id} not found" });
-            }
-
-            return Ok(new { message = "University deleted successfully" });
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error deleting university");
-            return StatusCode(500, new { message = "An error occurred while deleting the university", error = ex.Message });
-        }
-    }
-
-    /// <summary>
-    /// Update a college (Admin only)
-    /// </summary>
-    /// <param name="dto">College data</param>
-    /// <returns>Updated college</returns>
+    // UPDATE - Colleges
     [HttpPut("colleges")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -574,27 +404,20 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update a college (Admin only) - PATCH
-    /// </summary>
-    /// <param name="id">College ID</param>
-    /// <param name="dto">College data</param>
-    /// <returns>Updated college</returns>
     [HttpPatch("colleges/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BLL.ModelVM.CollegeViewModel>> PatchCollege(int id, [FromBody] BLL.ModelVM.UpdateCollegeDto dto)
+    public async Task<ActionResult<BLL.ModelVM.CollegeViewModel>> PatchCollege(
+        int id,
+        [FromBody] BLL.ModelVM.UpdateCollegeDto dto)
     {
         try
         {
-            dto.Id = id; // Ensure ID matches route
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            // Ensure ID from route is set
+            dto.Id = id;
 
             var college = await _universityService.UpdateCollegeAsync(dto);
             return Ok(college);
@@ -610,11 +433,7 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Delete a college (Admin only)
-    /// </summary>
-    /// <param name="id">College ID</param>
-    /// <returns>Success status</returns>
+    // DELETE - Colleges
     [HttpDelete("colleges/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -639,11 +458,65 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update a department (Admin only)
-    /// </summary>
-    /// <param name="dto">Department data</param>
-    /// <returns>Updated department</returns>
+    // ==========================================
+    // DEPARTMENT CRUD OPERATIONS
+    // ==========================================
+
+    // READ - Departments
+    [HttpGet("departments/{id}")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "id" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<BLL.ModelVM.DepartmentViewModel>> GetDepartmentById(int id)
+    {
+        try
+        {
+            var department = await _universityService.GetDepartmentByIdAsync(id);
+            
+            if (department == null)
+            {
+                return NotFound(new { message = $"Department with ID {id} not found" });
+            }
+
+            return Ok(department);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting department by ID");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
+    // CREATE - Departments
+    [HttpPost("departments")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BLL.ModelVM.DepartmentViewModel>> CreateDepartment([FromBody] BLL.ModelVM.CreateDepartmentDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var department = await _universityService.CreateDepartmentAsync(dto);
+            return Created($"/api/Colleges/{dto.CollegeId}/departments/{department.Id}", department);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating department");
+            return StatusCode(500, new { message = "An error occurred while creating the department", error = ex.Message });
+        }
+    }
+
+    // UPDATE - Departments
     [HttpPut("departments")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -673,27 +546,20 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update a department (Admin only) - PATCH
-    /// </summary>
-    /// <param name="id">Department ID</param>
-    /// <param name="dto">Department data</param>
-    /// <returns>Updated department</returns>
     [HttpPatch("departments/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BLL.ModelVM.DepartmentViewModel>> PatchDepartment(int id, [FromBody] BLL.ModelVM.UpdateDepartmentDto dto)
+    public async Task<ActionResult<BLL.ModelVM.DepartmentViewModel>> PatchDepartment(
+        int id,
+        [FromBody] BLL.ModelVM.UpdateDepartmentDto dto)
     {
         try
         {
-            dto.Id = id; // Ensure ID matches route
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            // Ensure ID from route is set
+            dto.Id = id;
 
             var department = await _universityService.UpdateDepartmentAsync(dto);
             return Ok(department);
@@ -709,11 +575,7 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Delete a department (Admin only)
-    /// </summary>
-    /// <param name="id">Department ID</param>
-    /// <returns>Success status</returns>
+    // DELETE - Departments
     [HttpDelete("departments/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -738,12 +600,40 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update a branch (Admin only)
-    /// </summary>
-    /// <param name="universityId">University ID</param>
-    /// <param name="dto">Branch data</param>
-    /// <returns>Updated branch</returns>
+    // ==========================================
+    // BRANCH CRUD OPERATIONS
+    // ==========================================
+
+    // CREATE - Branches
+    [HttpPost("{universityId}/branches")]
+    [Authorize(Roles = "Admin")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<BLL.ModelVM.BranchViewModel>> CreateBranch(int universityId, [FromBody] BLL.ModelVM.CreateBranchDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var branch = await _universityService.CreateBranchAsync(universityId, dto);
+            return Created($"/api/Universities/{universityId}/branches/{branch.Id}", branch);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating branch");
+            return StatusCode(500, new { message = "An error occurred while creating the branch", error = ex.Message });
+        }
+    }
+
+    // UPDATE - Branches
     [HttpPut("{universityId}/branches")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -773,30 +663,27 @@ public class UniversitiesController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Update a branch (Admin only) - PATCH
-    /// </summary>
-    /// <param name="universityId">University ID</param>
-    /// <param name="id">Branch ID</param>
-    /// <param name="dto">Branch data</param>
-    /// <returns>Updated branch</returns>
     [HttpPatch("{universityId}/branches/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BLL.ModelVM.BranchViewModel>> PatchBranch(int universityId, int id, [FromBody] BLL.ModelVM.UpdateBranchDto dto)
+    public async Task<ActionResult<BLL.ModelVM.BranchViewModel>> PatchBranch(
+        int universityId,
+        int id,
+        [FromBody] BLL.ModelVM.UpdateBranchDto branchDto)
     {
         try
         {
-            dto.Id = id; // Ensure ID matches route
-            if (!ModelState.IsValid)
+            // Get existing branch to fill in missing values
+            var existing = await _universityService.GetBranchByIdAsync(id);
+            if (existing == null)
             {
-                return BadRequest(ModelState);
+                return NotFound(new { message = $"Branch with ID {id} not found" });
             }
 
-            var branch = await _universityService.UpdateBranchAsync(universityId, dto);
+            var branch = await _universityService.UpdateBranchAsync(universityId, branchDto);
             return Ok(branch);
         }
         catch (ArgumentException ex)
@@ -806,15 +693,11 @@ public class UniversitiesController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating branch");
-            return StatusCode(500, new { message = "An error occurred while updating the branch", error = ex.Message });
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
         }
     }
 
-    /// <summary>
-    /// Delete a branch (Admin only)
-    /// </summary>
-    /// <param name="id">Branch ID</param>
-    /// <returns>Success status</returns>
+    // DELETE - Branches
     [HttpDelete("branches/{id}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -836,6 +719,104 @@ public class UniversitiesController : ControllerBase
         {
             _logger.LogError(ex, "Error deleting branch");
             return StatusCode(500, new { message = "An error occurred while deleting the branch", error = ex.Message });
+        }
+    }
+
+    // ==========================================
+    // SEARCH OPERATIONS
+    // ==========================================
+
+    [HttpGet("search/intelligent")]
+    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm", "type", "governorate", "studyType", "minFees", "maxFees", "minCoordination", "maxCoordination", "collegeName" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult> SearchIntelligent(
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] int? type = null,
+        [FromQuery] int? governorate = null,
+        [FromQuery] int? studyType = null,
+        [FromQuery] decimal? minFees = null,
+        [FromQuery] decimal? maxFees = null,
+        [FromQuery] decimal? minCoordination = null,
+        [FromQuery] decimal? maxCoordination = null,
+        [FromQuery] string? collegeName = null)
+    {
+        try
+        {
+            UniversityType? universityType = type.HasValue && Enum.IsDefined(typeof(UniversityType), type.Value)
+                ? (UniversityType?)type.Value
+                : null;
+
+            Governorate? governorateEnum = governorate.HasValue && Enum.IsDefined(typeof(Governorate), governorate.Value)
+                ? (Governorate?)governorate.Value
+                : null;
+
+            StudyType? studyTypeEnum = studyType.HasValue && Enum.IsDefined(typeof(StudyType), studyType.Value)
+                ? (StudyType?)studyType.Value
+                : null;
+
+            // If collegeName is provided, search for colleges
+            if (!string.IsNullOrWhiteSpace(collegeName))
+            {
+                var colleges = await _universityService.SearchCollegesIntelligentAsync(
+                    searchTerm,
+                    universityType,
+                    governorateEnum,
+                    studyTypeEnum,
+                    minFees,
+                    maxFees,
+                    minCoordination,
+                    maxCoordination,
+                    collegeName);
+
+                return Ok(colleges);
+            }
+            // Otherwise, search for universities
+            else
+            {
+                var universities = await _universityService.SearchUniversitiesIntelligentAsync(
+                    searchTerm,
+                    universityType,
+                    governorateEnum,
+                    studyTypeEnum,
+                    minFees,
+                    maxFees,
+                    minCoordination,
+                    maxCoordination,
+                    collegeName);
+
+                return Ok(universities);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error performing intelligent Arabic search");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
+        }
+    }
+
+    [HttpGet("search/name/intelligent")]
+    [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm" })]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<BLL.ModelVM.SearchResultViewModel>> SearchByNameIntelligent([FromQuery] string searchTerm)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(searchTerm))
+            {
+                return Ok(new BLL.ModelVM.SearchResultViewModel
+                {
+                    Universities = new List<BLL.ModelVM.UniversityViewModel>(),
+                    Colleges = new List<BLL.ModelVM.CollegeViewModel>()
+                });
+            }
+
+            var result = await _universityService.SearchByNameIntelligentAsync(searchTerm);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching by name with intelligent Arabic matching");
+            return StatusCode(500, new { message = "An error occurred while processing your request", error = ex.Message });
         }
     }
 }
