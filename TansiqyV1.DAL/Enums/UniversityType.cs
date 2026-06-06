@@ -20,7 +20,9 @@ public enum UniversityType
     Foreign = 5,
     
     [Description("جامعات تكنولوجية")]
-    Technological = 6
+    Technological = 6 ,
+    [Description("جامعات ذات طبيعة خاصة ")]
+    SpecialUni = 7
 
 
 

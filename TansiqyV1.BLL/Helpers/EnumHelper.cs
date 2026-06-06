@@ -14,6 +14,7 @@ public static class EnumHelper
             UniversityType.HigherInstitute => "معاهد عالية",
             UniversityType.Foreign => "جامعات أجنبية",
             UniversityType.Technological => "جامعات تكنولوجية",
+            UniversityType.SpecialUni => "جامعات خاصة ذات طابع خاص",
             _ => type.ToString()
         };
     }
@@ -62,6 +63,7 @@ public static class EnumHelper
             StudyType.Literary => "أدبي",
             StudyType.Industrial => "صنايع",
             StudyType.American => "أمريكان",
+            StudyType.All => "للجميع",
             _ => type.ToString()
         };
     }

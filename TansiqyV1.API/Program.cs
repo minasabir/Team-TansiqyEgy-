@@ -200,6 +200,13 @@ builder.Services.AddScoped<IUniversityService>(sp =>
 builder.Services.AddScoped<TansiqyV1.BLL.Services.Abstraction.INewsService, TansiqyV1.BLL.Services.Implementation.NewsService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddHttpClient("Chatbot", (sp, client) =>
+{
+    var timeoutSeconds = sp.GetRequiredService<IConfiguration>().GetValue("Chatbot:TimeoutSeconds", 120);
+    client.Timeout = TimeSpan.FromSeconds(timeoutSeconds);
+});
+builder.Services.AddScoped<IChatbotService, ChatbotService>();
+
 var app = builder.Build();
 
 // Apply database migrations

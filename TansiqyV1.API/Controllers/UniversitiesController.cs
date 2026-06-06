@@ -728,7 +728,8 @@ public class UniversitiesController : ControllerBase
 
     [HttpGet("search/intelligent")]
     [ResponseCache(Duration = 120, Location = ResponseCacheLocation.Any, VaryByQueryKeys = new[] { "searchTerm", "type", "governorate", "studyType", "minFees", "maxFees", "minCoordination", "maxCoordination", "collegeName" })]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<BLL.ModelVM.UniversityViewModel>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<BLL.ModelVM.CollegeViewModel>), StatusCodes.Status200OK)]
     public async Task<ActionResult> SearchIntelligent(
         [FromQuery] string? searchTerm = null,
         [FromQuery] int? type = null,
@@ -754,38 +755,41 @@ public class UniversitiesController : ControllerBase
                 ? (StudyType?)studyType.Value
                 : null;
 
-            // If collegeName is provided, search for colleges
-            if (!string.IsNullOrWhiteSpace(collegeName))
-            {
-                var colleges = await _universityService.SearchCollegesIntelligentAsync(
-                    searchTerm,
-                    universityType,
-                    governorateEnum,
-                    studyTypeEnum,
-                    minFees,
-                    maxFees,
-                    minCoordination,
-                    maxCoordination,
-                    collegeName);
+            var usesCollegeFilters = studyTypeEnum.HasValue
+                || minFees.HasValue
+                || maxFees.HasValue
+                || minCoordination.HasValue
+                || maxCoordination.HasValue
+                || !string.IsNullOrWhiteSpace(collegeName);
 
-                return Ok(colleges);
-            }
-            // Otherwise, search for universities
-            else
+            if (!usesCollegeFilters)
             {
                 var universities = await _universityService.SearchUniversitiesIntelligentAsync(
                     searchTerm,
                     universityType,
                     governorateEnum,
-                    studyTypeEnum,
-                    minFees,
-                    maxFees,
-                    minCoordination,
-                    maxCoordination,
-                    collegeName);
+                    studyType: null,
+                    minFees: null,
+                    maxFees: null,
+                    minCoordination: null,
+                    maxCoordination: null,
+                    collegeName: null);
 
                 return Ok(universities);
             }
+
+            var colleges = await _universityService.SearchCollegesIntelligentAsync(
+                searchTerm,
+                universityType,
+                governorateEnum,
+                studyTypeEnum,
+                minFees,
+                maxFees,
+                minCoordination,
+                maxCoordination,
+                collegeName);
+
+            return Ok(colleges);
         }
         catch (Exception ex)
         {

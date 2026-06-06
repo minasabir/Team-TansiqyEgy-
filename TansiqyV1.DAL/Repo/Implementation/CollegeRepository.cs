@@ -77,13 +77,11 @@ public class CollegeRepository : GenericRepository<College>, ICollegeRepository
         decimal? maxCoordination,
         string? collegeName = null)
     {
-        // Start with basic query - only include university for joins
         var query = _dbSet
-            .Where(c => !c.IsDeleted)
+            .Where(c => !c.IsDeleted && !c.University.IsDeleted)
             .AsNoTracking()
             .AsQueryable();
 
-        // Apply numeric filters first (fastest)
         if (minFees.HasValue)
             query = query.Where(c => c.Fees.HasValue && c.Fees >= minFees.Value);
 
@@ -96,72 +94,72 @@ public class CollegeRepository : GenericRepository<College>, ICollegeRepository
         if (maxCoordination.HasValue)
             query = query.Where(c => c.LastYearCoordination.HasValue && c.LastYearCoordination <= maxCoordination.Value);
 
-        // Apply text filters
+        if (type.HasValue)
+            query = query.Where(c => c.University.Type == type.Value);
+
+        if (governorate.HasValue)
+            query = query.Where(c => c.University.Governorate == governorate.Value);
+
         if (!string.IsNullOrWhiteSpace(collegeName))
-        {
-            var collegePatterns = ArabicTextNormalizer.GenerateSearchVariations(collegeName);
-            // Use single OR condition instead of Any with multiple patterns
-            query = query.Where(c => 
-                EF.Functions.Like(c.NormalizedNameAr, $"%{ArabicTextNormalizer.Normalize(collegeName)}%") ||
-                EF.Functions.Like(c.NameAr, $"%{collegeName}%") ||
-                (c.NameEn != null && EF.Functions.Like(c.NameEn, $"%{collegeName}%"))
-            );
-        }
+            query = ApplyCollegeNameFilter(query, collegeName);
 
-        // Apply university filters - join with universities
-        if (type.HasValue || governorate.HasValue || !string.IsNullOrWhiteSpace(searchTerm))
-        {
-            query = query.Include(c => c.University);
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+            query = ApplyCollegeOrUniversityNameFilter(query, searchTerm);
 
-            if (type.HasValue)
-                query = query.Where(c => c.University.Type == type.Value);
-
-            if (governorate.HasValue)
-                query = query.Where(c => c.University.Governorate == governorate.Value);
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                var normalizedTerm = ArabicTextNormalizer.Normalize(searchTerm);
-                query = query.Where(c => 
-                    EF.Functions.Like(c.University.NormalizedNameAr, $"%{normalizedTerm}%") ||
-                    EF.Functions.Like(c.University.NameAr, $"%{searchTerm}%") ||
-                    (c.University.NameEn != null && EF.Functions.Like(c.University.NameEn, $"%{searchTerm}%"))
-                );
-            }
-        }
-
-        // Study type filter - only if needed
         if (studyType.HasValue)
-        {
             query = query.Where(c => c.Departments.Any(d => d.StudyType == studyType.Value && !d.IsDeleted));
-        }
 
-        // Execute query with split query optimization
         var colleges = await query
             .Include(c => c.University)
             .AsSplitQuery()
             .ToListAsync();
 
-        // Load departments separately only for filtered results
-        if (colleges.Any())
-        {
-            var collegeIds = colleges.Select(c => c.Id).ToList();
-            var departments = await _context.Set<Department>()
-                .Where(d => collegeIds.Contains(d.CollegeId) && !d.IsDeleted)
-                .AsNoTracking()
-                .ToListAsync();
+        if (colleges.Count == 0)
+            return colleges;
 
-            // Attach departments to colleges
-            var departmentsByCollege = departments.GroupBy(d => d.CollegeId).ToDictionary(g => g.Key, g => g.ToList());
-            foreach (var college in colleges)
-            {
-                if (departmentsByCollege.TryGetValue(college.Id, out var collegeDepts))
-                {
-                    college.Departments = collegeDepts;
-                }
-            }
+        var collegeIds = colleges.Select(c => c.Id).ToList();
+        var departmentQuery = _context.Set<Department>()
+            .Where(d => collegeIds.Contains(d.CollegeId) && !d.IsDeleted);
+
+        if (studyType.HasValue)
+            departmentQuery = departmentQuery.Where(d => d.StudyType == studyType.Value);
+
+        var departments = await departmentQuery.AsNoTracking().ToListAsync();
+        var departmentsByCollege = departments.GroupBy(d => d.CollegeId).ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var college in colleges)
+        {
+            college.Departments = departmentsByCollege.GetValueOrDefault(college.Id) ?? new List<Department>();
         }
 
         return colleges;
+    }
+
+    private static IQueryable<College> ApplyCollegeNameFilter(IQueryable<College> query, string collegeName)
+    {
+        var likePatterns = ArabicTextNormalizer.GenerateSearchVariations(collegeName)
+            .Select(v => "%" + v + "%")
+            .ToList();
+
+        return query.Where(c =>
+            !c.IsDeleted &&
+            (likePatterns.Any(pattern => EF.Functions.Like(c.NormalizedNameAr, pattern)) ||
+             likePatterns.Any(pattern => EF.Functions.Like(c.NameAr, pattern)) ||
+             (c.NameEn != null && EF.Functions.Like(c.NameEn, "%" + collegeName + "%"))));
+    }
+
+    private static IQueryable<College> ApplyCollegeOrUniversityNameFilter(IQueryable<College> query, string searchTerm)
+    {
+        var likePatterns = ArabicTextNormalizer.GenerateSearchVariations(searchTerm)
+            .Select(v => "%" + v + "%")
+            .ToList();
+
+        return query.Where(c =>
+            likePatterns.Any(pattern => EF.Functions.Like(c.NormalizedNameAr, pattern)) ||
+            likePatterns.Any(pattern => EF.Functions.Like(c.NameAr, pattern)) ||
+            (c.NameEn != null && EF.Functions.Like(c.NameEn, "%" + searchTerm + "%")) ||
+            likePatterns.Any(pattern => EF.Functions.Like(c.University.NormalizedNameAr, pattern)) ||
+            likePatterns.Any(pattern => EF.Functions.Like(c.University.NameAr, pattern)) ||
+            (c.University.NameEn != null && EF.Functions.Like(c.University.NameEn, "%" + searchTerm + "%")));
     }
 }

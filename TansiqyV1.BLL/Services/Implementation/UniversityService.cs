@@ -409,41 +409,7 @@ public class UniversityService : IUniversityService
 
         // Search colleges
         var colleges = await _collegeRepository.SearchByNameIntelligentAsync(searchTerm);
-        var collegeViewModels = colleges.Select(c => new CollegeViewModel
-        {
-            Id = c.Id,
-            NameAr = c.NameAr,
-            NameEn = c.NameEn,
-            UniversityId = c.UniversityId,
-            OfficialWebsite = c.OfficialWebsite,
-            Location = c.Location,
-            Description = c.Description,
-            Fees = c.Fees,
-            LastYearCoordination = c.LastYearCoordination,
-            FeesCategoryA = c.FeesCategoryA,
-            FeesCategoryB = c.FeesCategoryB,
-            FeesCategoryC = c.FeesCategoryC,
-            FeesPerHour = c.FeesPerHour,
-            MinimumHoursPerSemester = c.MinimumHoursPerSemester,
-            AdditionalFees = c.AdditionalFees,
-            DepartmentsCount = c.Departments.Count,
-            University = c.University != null ? new UniversityBasicViewModel
-            {
-                Id = c.University.Id,
-                NameAr = c.University.NameAr,
-                Type = (int)c.University.Type,
-                TypeAr = c.University.Type.GetDescription()
-            } : null,
-            Departments = c.Departments.Select(d => new DepartmentViewModel
-            {
-                Id = d.Id,
-                NameAr = d.NameAr,
-                NameEn = d.NameEn,
-                StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
-                StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null,
-                Description = d.Description
-            }).ToList()
-        }).ToList();
+        var collegeViewModels = colleges.Select(MapCollegeToViewModel).ToList();
 
         return new SearchResultViewModel
         {
@@ -452,7 +418,6 @@ public class UniversityService : IUniversityService
         };
     }
 
-    // Search colleges with filters - returns colleges directly
     public async Task<IEnumerable<CollegeViewModel>> SearchCollegesIntelligentAsync(
         string? searchTerm,
         UniversityType? type,
@@ -464,7 +429,6 @@ public class UniversityService : IUniversityService
         decimal? maxCoordination,
         string? collegeName = null)
     {
-        // Get all colleges with their universities
         var colleges = await _collegeRepository.SearchIntelligentWithFiltersAsync(
             searchTerm,
             type,
@@ -476,42 +440,44 @@ public class UniversityService : IUniversityService
             maxCoordination,
             collegeName);
 
-        return colleges.Select(c => new CollegeViewModel
-        {
-            Id = c.Id,
-            NameAr = c.NameAr,
-            NameEn = c.NameEn,
-            UniversityId = c.UniversityId,
-            OfficialWebsite = c.OfficialWebsite,
-            Location = c.Location,
-            Description = c.Description,
-            Fees = c.Fees,
-            LastYearCoordination = c.LastYearCoordination,
-            FeesCategoryA = c.FeesCategoryA,
-            FeesCategoryB = c.FeesCategoryB,
-            FeesCategoryC = c.FeesCategoryC,
-            FeesPerHour = c.FeesPerHour,
-            MinimumHoursPerSemester = c.MinimumHoursPerSemester,
-            AdditionalFees = c.AdditionalFees,
-            DepartmentsCount = c.Departments.Count,
-            University = c.University != null ? new UniversityBasicViewModel
-            {
-                Id = c.University.Id,
-                NameAr = c.University.NameAr,
-                Type = (int)c.University.Type,
-                TypeAr = c.University.Type.GetDescription()
-            } : null,
-            Departments = c.Departments.Select(d => new DepartmentViewModel
-            {
-                Id = d.Id,
-                NameAr = d.NameAr,
-                NameEn = d.NameEn,
-                StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
-                StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null,
-                Description = d.Description
-            }).ToList()
-        });
+        return colleges.Select(MapCollegeToViewModel);
     }
+
+    private static CollegeViewModel MapCollegeToViewModel(College c) => new()
+    {
+        Id = c.Id,
+        NameAr = c.NameAr,
+        NameEn = c.NameEn,
+        UniversityId = c.UniversityId,
+        OfficialWebsite = c.OfficialWebsite,
+        Location = c.Location,
+        Description = c.Description,
+        Fees = c.Fees,
+        LastYearCoordination = c.LastYearCoordination,
+        FeesCategoryA = c.FeesCategoryA,
+        FeesCategoryB = c.FeesCategoryB,
+        FeesCategoryC = c.FeesCategoryC,
+        FeesPerHour = c.FeesPerHour,
+        MinimumHoursPerSemester = c.MinimumHoursPerSemester,
+        AdditionalFees = c.AdditionalFees,
+        DepartmentsCount = c.Departments.Count,
+        University = c.University != null ? new UniversityBasicViewModel
+        {
+            Id = c.University.Id,
+            NameAr = c.University.NameAr,
+            Type = (int)c.University.Type,
+            TypeAr = c.University.Type.GetDescription()
+        } : null,
+        Departments = c.Departments.Select(d => new DepartmentViewModel
+        {
+            Id = d.Id,
+            NameAr = d.NameAr,
+            NameEn = d.NameEn,
+            StudyType = d.StudyType.HasValue ? (int?)d.StudyType.Value : null,
+            StudyTypeAr = d.StudyType.HasValue ? d.StudyType.Value.GetDescription() : null,
+            Description = d.Description
+        }).ToList()
+    };
 
     public async Task<IEnumerable<CollegeViewModel>> GetCollegesByUniversityIdAsync(int universityId)
     {
